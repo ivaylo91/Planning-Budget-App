@@ -1,12 +1,12 @@
 {
   "expo": {
     "name": "Пазарувай умно",
-    "slug": "pazaruvay-umno",
+    "slug": "pazaruvaj-umno",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "pazaruvay-umno",
+    "scheme": "pazaruvaj-umno",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.pazaruvayumno.app"
