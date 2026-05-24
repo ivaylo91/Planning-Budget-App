@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, TextInput, Alert, ScrollView, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { getActiveShoppingList, updateBudget } from '../../lib/queries';
 import { eurToBgn, formatPrice, formatEur, bgnToEur } from '../../lib/currency';
@@ -26,7 +27,7 @@ export default function BudgetScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const items = list?.items ?? [];
   const budgetBgn = list ? eurToBgn(list.budget_eur) : 0;

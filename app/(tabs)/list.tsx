@@ -9,6 +9,7 @@ import {
   removeItemFromList, createShoppingList,
 } from '../../lib/queries';
 import { formatPrice, eurToBgn, formatEur } from '../../lib/currency';
+import { notifyOverBudget } from '../../lib/notifications';
 import type { ShoppingList, ListItem } from '../../types';
 
 export default function ListScreen() {
@@ -41,12 +42,19 @@ export default function ListScreen() {
   const progress = budgetBgn > 0 ? Math.min(totalSpent / budgetBgn, 1) : 0;
   const isOver = totalSpent > budgetBgn;
 
+  const checkOverBudget = useCallback((items: ListItem[], budgetBgn: number, listName: string) => {
+    const total = items.filter((i) => !i.is_checked).reduce((s, i) => s + (i.price_at_add ?? 0) * i.quantity, 0);
+    if (total > budgetBgn) notifyOverBudget(total - budgetBgn, listName);
+  }, []);
+
   const handleAddItem = async () => {
     if (!list || newItem.trim().length < 2) return;
     setAdding(true);
     try {
       const item = await addItemToList(list.id, newItem.trim(), null);
-      setList((prev) => prev ? { ...prev, items: [...(prev.items ?? []), item] } : prev);
+      const newItems = [...(list.items ?? []), item];
+      setList((prev) => prev ? { ...prev, items: newItems } : prev);
+      checkOverBudget(newItems, eurToBgn(list.budget_eur), list.name);
       setNewItem('');
     } catch {
       Alert.alert('Грешка', 'Не можа да се добави продуктът.');
@@ -57,11 +65,14 @@ export default function ListScreen() {
 
   const handleToggle = async (item: ListItem) => {
     try {
-      await toggleItemChecked(item.id, !item.is_checked);
-      setList((prev) => prev ? {
-        ...prev,
-        items: prev.items?.map((i) => i.id === item.id ? { ...i, is_checked: !i.is_checked } : i),
-      } : prev);
+      const newChecked = !item.is_checked;
+      await toggleItemChecked(item.id, newChecked);
+      setList((prev) => {
+        if (!prev) return prev;
+        const newItems = prev.items?.map((i) => i.id === item.id ? { ...i, is_checked: newChecked } : i) ?? [];
+        if (!newChecked) checkOverBudget(newItems, eurToBgn(prev.budget_eur), prev.name);
+        return { ...prev, items: newItems };
+      });
     } catch { /* silent */ }
   };
 
