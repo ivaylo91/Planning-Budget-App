@@ -34,12 +34,12 @@ export default function ListScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  const budgetBgn = list ? eurToBgn(list.budget_eur) : 0;
   const totalSpent = (list?.items ?? [])
     .filter((i) => !i.is_checked)
-    .reduce((sum, i) => sum + (i.price_at_add ?? 0) * i.quantity, 0);
-
-  const budgetBgn = list ? eurToBgn(list.budget_eur) : 0;
-  const isOverBudget = totalSpent > budgetBgn;
+    .reduce((s, i) => s + (i.price_at_add ?? 0) * i.quantity, 0);
+  const progress = budgetBgn > 0 ? Math.min(totalSpent / budgetBgn, 1) : 0;
+  const isOver = totalSpent > budgetBgn;
 
   const handleAddItem = async () => {
     if (!list || newItem.trim().length < 2) return;
@@ -58,46 +58,29 @@ export default function ListScreen() {
   const handleToggle = async (item: ListItem) => {
     try {
       await toggleItemChecked(item.id, !item.is_checked);
-      setList((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          items: prev.items?.map((i) =>
-            i.id === item.id ? { ...i, is_checked: !i.is_checked } : i
-          ),
-        };
-      });
-    } catch {
-      Alert.alert('Грешка', 'Не можа да се актуализира.');
-    }
+      setList((prev) => prev ? {
+        ...prev,
+        items: prev.items?.map((i) => i.id === item.id ? { ...i, is_checked: !i.is_checked } : i),
+      } : prev);
+    } catch { /* silent */ }
   };
 
   const handleRemove = (item: ListItem) => {
-    Alert.alert(
-      'Изтрий',
-      `Изтрий „${item.product_name}" от списъка?`,
-      [
-        { text: 'Отказ', style: 'cancel' },
-        {
-          text: 'Изтрий',
-          style: 'destructive',
-          onPress: async () => {
-            await removeItemFromList(item.id);
-            setList((prev) =>
-              prev ? { ...prev, items: prev.items?.filter((i) => i.id !== item.id) } : prev
-            );
-          },
+    Alert.alert('Изтрий', `Изтрий „${item.product_name}"?`, [
+      { text: 'Отказ', style: 'cancel' },
+      {
+        text: 'Изтрий', style: 'destructive',
+        onPress: async () => {
+          await removeItemFromList(item.id);
+          setList((prev) => prev ? { ...prev, items: prev.items?.filter((i) => i.id !== item.id) } : prev);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCreateList = async () => {
     const budget = parseFloat(newBudget);
-    if (isNaN(budget) || budget <= 0) {
-      Alert.alert('Грешка', 'Въведи валиден бюджет.');
-      return;
-    }
+    if (isNaN(budget) || budget <= 0) { Alert.alert('Грешка', 'Въведи валиден бюджет.'); return; }
     try {
       const created = await createShoppingList(newListName.trim() || 'Моят списък', budget);
       setList({ ...created, items: [] });
@@ -121,42 +104,33 @@ export default function ListScreen() {
         <Text style={[styles.itemName, item.is_checked && styles.itemNameChecked]}>
           {item.product_name}
         </Text>
-        {item.store && (
-          <Text style={styles.itemStore}>{item.store.name}</Text>
-        )}
+        {item.store && <Text style={styles.itemStore}>{item.store.name}</Text>}
       </View>
-      {item.price_at_add && (
+      {item.price_at_add ? (
         <Text style={[styles.itemPrice, item.is_checked && styles.itemPriceChecked]}>
           {formatPrice(item.price_at_add * item.quantity)}
         </Text>
-      )}
+      ) : null}
     </TouchableOpacity>
   );
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <View style={styles.centered}><ActivityIndicator size="large" color={Colors.accent} /></View>;
   }
 
   if (!list) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyIcon}>📝</Text>
-        <Text style={styles.emptyText}>Нямаш активен списък за пазаруване</Text>
+        <Text style={styles.emptyEmoji}>📋</Text>
+        <Text style={styles.emptyTitle}>Нямаш списък</Text>
+        <Text style={styles.emptyHint}>Създай списък и започни да пазаруваш умно</Text>
         <TouchableOpacity style={styles.createBtn} onPress={() => setShowNewList(true)}>
-          <Text style={styles.createBtnText}>+ Създай списък</Text>
+          <Text style={styles.createBtnText}>+ Нов списък</Text>
         </TouchableOpacity>
         <NewListModal
-          visible={showNewList}
-          name={newListName}
-          budget={newBudget}
-          onChangeName={setNewListName}
-          onChangeBudget={setNewBudget}
-          onConfirm={handleCreateList}
-          onClose={() => setShowNewList(false)}
+          visible={showNewList} name={newListName} budget={newBudget}
+          onChangeName={setNewListName} onChangeBudget={setNewBudget}
+          onConfirm={handleCreateList} onClose={() => setShowNewList(false)}
         />
       </View>
     );
@@ -164,36 +138,39 @@ export default function ListScreen() {
 
   const unchecked = (list.items ?? []).filter((i) => !i.is_checked);
   const checked = (list.items ?? []).filter((i) => i.is_checked);
+  const barColor = isOver ? Colors.bad : progress > 0.8 ? Colors.warn : Colors.good;
 
   return (
     <View style={styles.container}>
-      {/* Budget bar */}
-      <View style={[styles.budgetBar, isOverBudget && styles.budgetBarOver]}>
-        <View>
-          <Text style={styles.budgetLabel}>{list.name}</Text>
-          <Text style={styles.budgetSub}>
-            Бюджет: {formatEur(list.budget_eur)} ({formatPrice(budgetBgn)})
-          </Text>
+      {/* Budget summary strip */}
+      <View style={styles.budgetStrip}>
+        <View style={styles.budgetStripLeft}>
+          <Text style={styles.budgetStripName}>{list.name}</Text>
+          <Text style={styles.budgetStripSub}>Бюджет {formatEur(list.budget_eur)} · {formatPrice(budgetBgn)}</Text>
         </View>
-        <View style={styles.budgetRight}>
-          <Text style={[styles.budgetSpent, isOverBudget && styles.budgetOver]}>
+        <View style={styles.budgetStripRight}>
+          <Text style={[styles.budgetStripSpent, { color: isOver ? Colors.bad : Colors.ink }]}>
             {formatPrice(totalSpent)}
           </Text>
-          {isOverBudget && <Text style={styles.overLabel}>⚠️ НАДВИШЕН!</Text>}
-          {!isOverBudget && (
-            <Text style={styles.budgetRemaining}>
-              остават {formatPrice(budgetBgn - totalSpent)}
-            </Text>
-          )}
+          <Text style={[styles.budgetStripRem, { color: barColor }]}>
+            {isOver ? `+${formatPrice(totalSpent - budgetBgn)} над` : `${formatPrice(budgetBgn - totalSpent)} остава`}
+          </Text>
         </View>
       </View>
 
-      {/* Add item */}
+      {/* Progress bar */}
+      <View style={styles.progressWrap}>
+        <View style={styles.progressBg}>
+          <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` as any, backgroundColor: barColor }]} />
+        </View>
+      </View>
+
+      {/* Add item row */}
       <View style={styles.addRow}>
         <TextInput
           style={styles.addInput}
           placeholder="Добави продукт..."
-          placeholderTextColor={Colors.textSecondary}
+          placeholderTextColor={Colors.inkFaint}
           value={newItem}
           onChangeText={setNewItem}
           onSubmitEditing={handleAddItem}
@@ -204,7 +181,7 @@ export default function ListScreen() {
           onPress={handleAddItem}
           disabled={!newItem.trim() || adding}
         >
-          <Text style={styles.addBtnText}>{adding ? '...' : '+'}</Text>
+          <Text style={styles.addBtnText}>{adding ? '…' : '+'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -214,71 +191,43 @@ export default function ListScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.primary} />
-        }
-        ListHeaderComponent={
-          checked.length > 0 && unchecked.length > 0
-            ? <Text style={styles.sectionLabel}>Купени ({checked.length})</Text>
-            : null
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.accent} />}
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <Text style={styles.emptyEmoji}>🛒</Text>
+            <Text style={styles.emptyHint}>Списъкът е празен — добави продукти по-горе</Text>
+          </View>
         }
         ListFooterComponent={
           <TouchableOpacity style={styles.newListBtn} onPress={() => setShowNewList(true)}>
             <Text style={styles.newListBtnText}>+ Нов списък</Text>
           </TouchableOpacity>
         }
-        ListEmptyComponent={
-          <View style={styles.emptyList}>
-            <Text style={styles.emptyIcon}>🛒</Text>
-            <Text style={styles.emptyText}>Списъкът е празен.{'\n'}Добави продукти по-горе.</Text>
-          </View>
-        }
       />
 
       <NewListModal
-        visible={showNewList}
-        name={newListName}
-        budget={newBudget}
-        onChangeName={setNewListName}
-        onChangeBudget={setNewBudget}
-        onConfirm={handleCreateList}
-        onClose={() => setShowNewList(false)}
+        visible={showNewList} name={newListName} budget={newBudget}
+        onChangeName={setNewListName} onChangeBudget={setNewBudget}
+        onConfirm={handleCreateList} onClose={() => setShowNewList(false)}
       />
     </View>
   );
 }
 
-function NewListModal({
-  visible, name, budget, onChangeName, onChangeBudget, onConfirm, onClose,
-}: {
-  visible: boolean;
-  name: string;
-  budget: string;
-  onChangeName: (v: string) => void;
-  onChangeBudget: (v: string) => void;
-  onConfirm: () => void;
-  onClose: () => void;
+function NewListModal({ visible, name, budget, onChangeName, onChangeBudget, onConfirm, onClose }: {
+  visible: boolean; name: string; budget: string;
+  onChangeName: (v: string) => void; onChangeBudget: (v: string) => void;
+  onConfirm: () => void; onClose: () => void;
 }) {
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modal}>
           <Text style={styles.modalTitle}>Нов списък</Text>
-          <TextInput
-            style={styles.modalInput}
-            placeholder="Име на списъка"
-            value={name}
-            onChangeText={onChangeName}
-            placeholderTextColor={Colors.textSecondary}
-          />
-          <TextInput
-            style={styles.modalInput}
-            placeholder="Бюджет в евро (напр. 100)"
-            value={budget}
-            onChangeText={onChangeBudget}
-            keyboardType="numeric"
-            placeholderTextColor={Colors.textSecondary}
-          />
+          <TextInput style={styles.modalInput} placeholder="Название (напр. Седмично)" value={name}
+            onChangeText={onChangeName} placeholderTextColor={Colors.inkFaint} />
+          <TextInput style={styles.modalInput} placeholder="Бюджет в евро (напр. 100)" value={budget}
+            onChangeText={onChangeBudget} keyboardType="numeric" placeholderTextColor={Colors.inkFaint} />
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.modalCancel} onPress={onClose}>
               <Text style={styles.modalCancelText}>Отказ</Text>
@@ -294,148 +243,97 @@ function NewListModal({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { color: Colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  container: { flex: 1, backgroundColor: Colors.canvas },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyEmoji: { fontSize: 44, marginBottom: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.ink, marginBottom: 6 },
+  emptyHint: { fontSize: 14, color: Colors.inkSoft, textAlign: 'center', lineHeight: 20 },
   createBtn: {
-    marginTop: 20,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    marginTop: 20, backgroundColor: Colors.accent,
+    borderRadius: 999, paddingVertical: 14, paddingHorizontal: 32,
   },
-  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  budgetBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  budgetStrip: {
+    backgroundColor: Colors.surface, flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10,
   },
-  budgetBarOver: { backgroundColor: Colors.error },
-  budgetLabel: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  budgetSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
-  budgetRight: { alignItems: 'flex-end' },
-  budgetSpent: { color: '#fff', fontWeight: '800', fontSize: 20 },
-  budgetOver: { color: '#FFCDD2' },
-  overLabel: { color: '#FFCDD2', fontSize: 12, fontWeight: '700' },
-  budgetRemaining: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
+  budgetStripLeft: { flex: 1 },
+  budgetStripName: { fontSize: 15, fontWeight: '700', color: Colors.ink },
+  budgetStripSub: { fontSize: 11, color: Colors.inkSoft, marginTop: 2 },
+  budgetStripRight: { alignItems: 'flex-end' },
+  budgetStripSpent: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  budgetStripRem: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+
+  progressWrap: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingBottom: 12 },
+  progressBg: {
+    height: 6, backgroundColor: Colors.surfaceAlt, borderRadius: 999, overflow: 'hidden',
+  },
+  progressFill: { height: '100%', borderRadius: 999 },
+
   addRow: {
-    flexDirection: 'row',
-    margin: 12,
-    gap: 8,
+    flexDirection: 'row', marginHorizontal: 14, marginVertical: 10, gap: 8, alignItems: 'center',
   },
   addInput: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
-    color: Colors.textPrimary,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    flex: 1, backgroundColor: Colors.surface, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: Colors.ink,
+    borderWidth: 1, borderColor: 'rgba(43,29,18,0.08)',
   },
   addBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    width: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: Colors.accent, borderRadius: 14,
+    width: 46, height: 46, alignItems: 'center', justifyContent: 'center',
   },
-  addBtnDisabled: { opacity: 0.4 },
-  addBtnText: { color: '#fff', fontSize: 26, fontWeight: '300' },
-  list: { paddingHorizontal: 12, paddingBottom: 20 },
-  sectionLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    marginTop: 8,
-  },
+  addBtnDisabled: { opacity: 0.35 },
+  addBtnText: { color: '#fff', fontSize: 26, fontWeight: '300', lineHeight: 30 },
+
+  list: { paddingHorizontal: 14, paddingBottom: 24, gap: 8 },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface, borderRadius: 14, padding: 14,
+    shadowColor: '#2b1d12', shadowOpacity: 0.04, shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 }, elevation: 1,
   },
-  itemChecked: { opacity: 0.5 },
+  itemChecked: { opacity: 0.45 },
   checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    width: 24, height: 24, borderRadius: 12,
+    borderWidth: 2, borderColor: Colors.inkFaint,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  checkboxChecked: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  checkmark: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  checkboxChecked: { backgroundColor: Colors.good, borderColor: Colors.good },
+  checkmark: { color: '#fff', fontWeight: '700', fontSize: 13 },
   itemBody: { flex: 1 },
-  itemName: { fontSize: 15, color: Colors.textPrimary, fontWeight: '500' },
-  itemNameChecked: { textDecorationLine: 'line-through', color: Colors.textSecondary },
-  itemStore: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
-  itemPrice: { fontSize: 14, fontWeight: '700', color: Colors.primary },
-  itemPriceChecked: { color: Colors.textSecondary },
+  itemName: { fontSize: 15, color: Colors.ink, fontWeight: '500' },
+  itemNameChecked: { textDecorationLine: 'line-through', color: Colors.inkFaint },
+  itemStore: { fontSize: 11, color: Colors.inkFaint, marginTop: 2 },
+  itemPrice: { fontSize: 13, fontWeight: '700', color: Colors.accent },
+  itemPriceChecked: { color: Colors.inkFaint },
+
   newListBtn: {
-    alignSelf: 'center',
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
+    alignSelf: 'center', marginTop: 16, marginBottom: 4,
+    paddingVertical: 10, paddingHorizontal: 24,
+    borderRadius: 999, borderWidth: 1.5, borderColor: Colors.accent,
   },
-  newListBtnText: { color: Colors.primary, fontWeight: '600' },
-  emptyList: { alignItems: 'center', paddingTop: 40 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modal: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 24,
-  },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 16 },
+  newListBtnText: { color: Colors.accent, fontWeight: '700', fontSize: 13 },
+  emptyList: { alignItems: 'center', paddingTop: 40, gap: 8 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(43,29,18,0.4)', justifyContent: 'center', padding: 24 },
+  modal: { backgroundColor: Colors.surface, borderRadius: 24, padding: 24 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.ink, marginBottom: 16 },
   modalInput: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
-    color: Colors.textPrimary,
-    marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(43,29,18,0.12)', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: Colors.ink, marginBottom: 12, backgroundColor: Colors.canvas,
   },
-  modalActions: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   modalCancel: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    flex: 1, paddingVertical: 13, borderRadius: 12,
+    alignItems: 'center', backgroundColor: Colors.surfaceAlt,
   },
-  modalCancelText: { color: Colors.textSecondary, fontWeight: '600' },
+  modalCancelText: { color: Colors.inkSoft, fontWeight: '600' },
   modalConfirm: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
+    flex: 1, paddingVertical: 13, borderRadius: 12,
+    alignItems: 'center', backgroundColor: Colors.accent,
   },
   modalConfirmText: { color: '#fff', fontWeight: '700' },
 });

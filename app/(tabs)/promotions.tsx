@@ -28,45 +28,36 @@ export default function PromotionsScreen() {
 
   useEffect(() => { load(); }, []);
 
-  const renderPromoPrice = (p: Price) => {
-    const storeColor = Colors.stores[p.store?.slug as keyof typeof Colors.stores] ?? Colors.primary;
-    const saving = p.promo_price ? p.price - p.promo_price : 0;
-    const pct = p.promo_price ? Math.round((saving / p.price) * 100) : 0;
-
+  const renderPromo = (p: Price) => {
+    const storeColor = Colors.stores[p.store?.slug as keyof typeof Colors.stores] ?? Colors.accent;
+    const pct = p.promo_price ? Math.round(((p.price - p.promo_price) / p.price) * 100) : 0;
     return (
-      <View key={p.store_id} style={[styles.promoChip, { borderColor: storeColor }]}>
-        <View style={[styles.storeHeader, { backgroundColor: storeColor }]}>
-          <Text style={styles.storeName}>{p.store?.name}</Text>
+      <View key={p.store_id} style={styles.promoTag}>
+        <View style={[styles.promoTagStore, { backgroundColor: storeColor }]}>
+          <Text style={styles.promoTagStoreName}>{p.store?.name}</Text>
         </View>
-        <View style={styles.promoBody}>
-          <Text style={styles.oldPrice}>{formatPrice(p.price)}</Text>
-          <Text style={[styles.newPrice, { color: storeColor }]}>
-            {formatPrice(p.promo_price!)}
-          </Text>
-          <View style={[styles.saveBadge, { backgroundColor: storeColor }]}>
-            <Text style={styles.saveText}>-{pct}%</Text>
+        <View style={styles.promoTagBody}>
+          <Text style={styles.promoOld}>{formatPrice(p.price)}</Text>
+          <Text style={[styles.promoNew, { color: storeColor }]}>{formatPrice(p.promo_price!)}</Text>
+          <View style={[styles.promoPct, { backgroundColor: storeColor }]}>
+            <Text style={styles.promoPctText}>-{pct}%</Text>
           </View>
-          {p.promo_end_date && (
-            <Text style={styles.endDate}>до {new Date(p.promo_end_date).toLocaleDateString('bg-BG')}</Text>
-          )}
         </View>
+        {p.promo_end_date && (
+          <Text style={styles.promoEnd}>до {new Date(p.promo_end_date).toLocaleDateString('bg-BG')}</Text>
+        )}
       </View>
     );
   };
 
   const renderItem = ({ item }: { item: ProductWithPrices }) => {
     const promos = item.prices.filter((p) => p.is_promotion && p.promo_price);
-    if (promos.length === 0) return null;
-
+    if (!promos.length) return null;
     return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => router.push(`/product/${item.id}`)}
-        activeOpacity={0.7}
-      >
+      <TouchableOpacity style={styles.card} onPress={() => router.push(`/product/${item.id}`)} activeOpacity={0.75}>
         <Text style={styles.productName}>{item.name}</Text>
         {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
-        <View style={styles.promoRow}>{promos.map(renderPromoPrice)}</View>
+        <View style={styles.promoRow}>{promos.map(renderPromo)}</View>
       </TouchableOpacity>
     );
   };
@@ -74,7 +65,7 @@ export default function PromotionsScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={Colors.accent} />
         <Text style={styles.loadingText}>Зареждам промоции...</Text>
       </View>
     );
@@ -88,18 +79,16 @@ export default function PromotionsScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.primary} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.accent} />}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.headerText}>🏷️ Активни промоции от всички магазини</Text>
+          <View style={styles.listHeader}>
+            <Text style={styles.listHeaderText}>Активни намаления тази седмица</Text>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Text style={styles.emptyIcon}>🏷️</Text>
-            <Text style={styles.emptyText}>Няма активни промоции в момента</Text>
+            <Text style={styles.emptyEmoji}>🏷️</Text>
+            <Text style={styles.emptyTitle}>Няма активни промоции</Text>
           </View>
         }
       />
@@ -108,48 +97,33 @@ export default function PromotionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loadingText: { marginTop: 12, color: Colors.textSecondary },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { color: Colors.textSecondary, fontSize: 15, textAlign: 'center' },
-  header: { paddingHorizontal: 12, paddingVertical: 10 },
-  headerText: { color: Colors.textSecondary, fontSize: 13 },
-  list: { paddingHorizontal: 12, paddingBottom: 20 },
+  container: { flex: 1, backgroundColor: Colors.canvas },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  loadingText: { marginTop: 12, color: Colors.inkSoft },
+  emptyEmoji: { fontSize: 44, marginBottom: 10 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: Colors.ink },
+  listHeader: { paddingHorizontal: 2, paddingBottom: 6, paddingTop: 4 },
+  listHeaderText: { fontSize: 13, color: Colors.inkSoft, fontWeight: '500' },
+  list: { padding: 14, paddingBottom: 24, gap: 10 },
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    backgroundColor: Colors.surface, borderRadius: 18, padding: 16,
+    shadowColor: '#2b1d12', shadowOpacity: 0.06, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
-  productName: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
-  brand: { fontSize: 12, color: Colors.textSecondary, marginBottom: 8 },
-  promoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  promoChip: {
-    borderWidth: 2,
-    borderRadius: 10,
-    overflow: 'hidden',
+  productName: { fontSize: 15, fontWeight: '700', color: Colors.ink, letterSpacing: -0.2 },
+  brand: { fontSize: 12, color: Colors.inkFaint, marginTop: 2, marginBottom: 4 },
+  promoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  promoTag: {
+    borderRadius: 12, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(43,29,18,0.08)',
     minWidth: 100,
   },
-  storeHeader: { paddingHorizontal: 8, paddingVertical: 4 },
-  storeName: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  promoBody: { padding: 8, alignItems: 'center' },
-  oldPrice: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    textDecorationLine: 'line-through',
-  },
-  newPrice: { fontSize: 16, fontWeight: '800', marginTop: 2 },
-  saveBadge: {
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginTop: 4,
-  },
-  saveText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  endDate: { fontSize: 9, color: Colors.textSecondary, marginTop: 4 },
+  promoTagStore: { paddingHorizontal: 8, paddingVertical: 4 },
+  promoTagStoreName: { color: '#fff', fontWeight: '700', fontSize: 11 },
+  promoTagBody: { padding: 8, alignItems: 'flex-start', gap: 2 },
+  promoOld: { fontSize: 11, color: Colors.inkFaint, textDecorationLine: 'line-through' },
+  promoNew: { fontSize: 16, fontWeight: '800' },
+  promoPct: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
+  promoPctText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  promoEnd: { fontSize: 9, color: Colors.inkFaint, paddingHorizontal: 8, paddingBottom: 6 },
 });

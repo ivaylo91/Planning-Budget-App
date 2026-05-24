@@ -30,24 +30,17 @@ export default function BudgetScreen() {
 
   const items = list?.items ?? [];
   const budgetBgn = list ? eurToBgn(list.budget_eur) : 0;
-
-  const totalInList = items.reduce(
-    (sum, i) => sum + (i.price_at_add ?? 0) * i.quantity, 0
-  );
-  const totalBought = items
-    .filter((i) => i.is_checked)
-    .reduce((sum, i) => sum + (i.price_at_add ?? 0) * i.quantity, 0);
+  const totalInList = items.reduce((s, i) => s + (i.price_at_add ?? 0) * i.quantity, 0);
+  const totalBought = items.filter((i) => i.is_checked).reduce((s, i) => s + (i.price_at_add ?? 0) * i.quantity, 0);
   const remaining = budgetBgn - totalInList;
   const progress = budgetBgn > 0 ? Math.min(totalInList / budgetBgn, 1) : 0;
   const isOver = totalInList > budgetBgn;
+  const barColor = isOver ? Colors.bad : progress > 0.8 ? Colors.warn : Colors.good;
 
   const handleSaveBudget = async () => {
     if (!list) return;
     const val = parseFloat(budgetInput);
-    if (isNaN(val) || val <= 0) {
-      Alert.alert('Грешка', 'Въведи валидна стойност.');
-      return;
-    }
+    if (isNaN(val) || val <= 0) { Alert.alert('Грешка', 'Въведи валидна стойност.'); return; }
     try {
       await updateBudget(list.id, val);
       setList((prev) => prev ? { ...prev, budget_eur: val } : prev);
@@ -58,37 +51,30 @@ export default function BudgetScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <View style={styles.centered}><ActivityIndicator size="large" color={Colors.accent} /></View>;
   }
 
   if (!list) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyIcon}>💰</Text>
-        <Text style={styles.emptyText}>Нямаш активен списък.{'\n'}Създай списък в таб „Списък".</Text>
+        <Text style={styles.emptyEmoji}>💰</Text>
+        <Text style={styles.emptyTitle}>Нямаш активен списък</Text>
+        <Text style={styles.emptyHint}>Създай списък в таб „Списък" за да проследиш бюджета</Text>
       </View>
     );
   }
-
-  const barColor = isOver ? Colors.error : progress > 0.8 ? Colors.warning : Colors.primary;
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.primary} />
-      }
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.accent} />}
     >
       {/* Main budget card */}
-      <View style={[styles.mainCard, { borderColor: barColor }]}>
+      <View style={styles.mainCard}>
         <Text style={styles.listName}>{list.name}</Text>
 
-        {/* Budget edit */}
         {editingBudget ? (
           <View style={styles.editRow}>
             <TextInput
@@ -98,7 +84,7 @@ export default function BudgetScreen() {
               keyboardType="numeric"
               placeholder="Бюджет в EUR"
               autoFocus
-              placeholderTextColor={Colors.textSecondary}
+              placeholderTextColor={Colors.inkFaint}
             />
             <Text style={styles.currencyLabel}>€</Text>
             <TouchableOpacity style={styles.saveBtn} onPress={handleSaveBudget}>
@@ -110,51 +96,38 @@ export default function BudgetScreen() {
           </View>
         ) : (
           <TouchableOpacity
-            style={styles.budgetDisplay}
-            onPress={() => {
-              setBudgetInput(list.budget_eur.toString());
-              setEditingBudget(true);
-            }}
+            onPress={() => { setBudgetInput(list.budget_eur.toString()); setEditingBudget(true); }}
           >
             <Text style={styles.budgetEur}>{formatEur(list.budget_eur)}</Text>
             <Text style={styles.budgetBgn}>{formatPrice(budgetBgn)}</Text>
-            <Text style={styles.editHint}>✏️ Натисни за редакция</Text>
+            <Text style={styles.editHint}>Натисни за промяна</Text>
           </TouchableOpacity>
         )}
 
         {/* Progress bar */}
-        <View style={styles.progressContainer}>
+        <View style={styles.progressRow}>
           <View style={styles.progressBg}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${Math.round(progress * 100)}%`, backgroundColor: barColor },
-              ]}
-            />
+            <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` as any, backgroundColor: barColor }]} />
           </View>
-          <Text style={[styles.progressPct, { color: barColor }]}>
-            {Math.round(progress * 100)}%
-          </Text>
+          <Text style={[styles.progressPct, { color: barColor }]}>{Math.round(progress * 100)}%</Text>
         </View>
 
         {isOver ? (
           <View style={styles.overBanner}>
-            <Text style={styles.overText}>
-              ⚠️ Надвишен бюджет с {formatPrice(Math.abs(remaining))}!
-            </Text>
+            <Text style={styles.overText}>⚠️ Надвишен с {formatPrice(Math.abs(remaining))}!</Text>
           </View>
         ) : (
           <Text style={styles.remainingText}>
-            Остават {formatPrice(remaining)} ({formatEur(bgnToEur(remaining))})
+            Остават {formatPrice(remaining)} · {formatEur(bgnToEur(remaining))}
           </Text>
         )}
       </View>
 
-      {/* Stats cards */}
+      {/* Stats row */}
       <View style={styles.statsRow}>
-        <StatCard label="В списъка" value={formatPrice(totalInList)} icon="🛒" color={Colors.primary} />
-        <StatCard label="Купено" value={formatPrice(totalBought)} icon="✅" color={Colors.success} />
-        <StatCard label="Продукти" value={`${items.length}`} icon="📦" color={Colors.accent} />
+        <StatCard label="В списъка" value={formatPrice(totalInList)} emoji="🛒" color={Colors.accent} />
+        <StatCard label="Купено" value={formatPrice(totalBought)} emoji="✅" color={Colors.good} />
+        <StatCard label="Продукти" value={String(items.length)} emoji="📦" color={Colors.warn} />
       </View>
 
       {/* Store breakdown */}
@@ -162,20 +135,27 @@ export default function BudgetScreen() {
 
       {/* Tips */}
       <View style={styles.tipsCard}>
-        <Text style={styles.tipsTitle}>💡 Съвети</Text>
-        <Text style={styles.tip}>• Задръж върху продукт в списъка за изтриване</Text>
-        <Text style={styles.tip}>• Натисни продукт за да го маркираш като купен</Text>
-        <Text style={styles.tip}>• 1 € = 1.95583 лв. (фиксиран курс)</Text>
-        <Text style={styles.tip}>• Сравни цените в Търсене преди да купуваш</Text>
+        <Text style={styles.tipsTitle}>Съвети за спестяване</Text>
+        {[
+          'Задръж продукт в списъка за изтриване',
+          'Сравни цени преди да пазаруваш',
+          '1 € = 1.95583 лв. (фиксиран курс)',
+          'Провери промоциите в таб Промоции',
+        ].map((tip, i) => (
+          <View key={i} style={styles.tipRow}>
+            <Text style={styles.tipDot}>·</Text>
+            <Text style={styles.tipText}>{tip}</Text>
+          </View>
+        ))}
       </View>
     </ScrollView>
   );
 }
 
-function StatCard({ label, value, icon, color }: { label: string; value: string; icon: string; color: string }) {
+function StatCard({ label, value, emoji, color }: { label: string; value: string; emoji: string; color: string }) {
   return (
     <View style={[styles.statCard, { borderTopColor: color }]}>
-      <Text style={styles.statIcon}>{icon}</Text>
+      <Text style={styles.statEmoji}>{emoji}</Text>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -184,34 +164,26 @@ function StatCard({ label, value, icon, color }: { label: string; value: string;
 
 function StoreBreakdown({ items }: { items: any[] }) {
   const byStore: Record<string, { name: string; total: number; color: string }> = {};
-
   items.forEach((item) => {
     if (!item.store_id || !item.price_at_add) return;
-    const storeName = item.store?.name ?? 'Неизвестен';
     const slug = item.store?.slug ?? '';
-    if (!byStore[item.store_id]) {
-      byStore[item.store_id] = {
-        name: storeName,
-        total: 0,
-        color: Colors.stores[slug as keyof typeof Colors.stores] ?? Colors.primary,
-      };
-    }
+    if (!byStore[item.store_id]) byStore[item.store_id] = {
+      name: item.store?.name ?? 'Неизвестен',
+      total: 0,
+      color: Colors.stores[slug as keyof typeof Colors.stores] ?? Colors.accent,
+    };
     byStore[item.store_id].total += item.price_at_add * item.quantity;
   });
-
   const entries = Object.values(byStore).sort((a, b) => b.total - a.total);
-  if (entries.length === 0) return null;
-
+  if (!entries.length) return null;
   return (
     <View style={styles.breakdownCard}>
       <Text style={styles.breakdownTitle}>По магазин</Text>
-      {entries.map((entry) => (
-        <View key={entry.name} style={styles.breakdownRow}>
-          <View style={[styles.storeDot, { backgroundColor: entry.color }]} />
-          <Text style={styles.breakdownStore}>{entry.name}</Text>
-          <Text style={[styles.breakdownAmount, { color: entry.color }]}>
-            {formatPrice(entry.total)}
-          </Text>
+      {entries.map((e) => (
+        <View key={e.name} style={styles.breakdownRow}>
+          <View style={[styles.storeDot, { backgroundColor: e.color }]} />
+          <Text style={styles.breakdownStore}>{e.name}</Text>
+          <Text style={[styles.breakdownAmt, { color: e.color }]}>{formatPrice(e.total)}</Text>
         </View>
       ))}
     </View>
@@ -219,118 +191,75 @@ function StoreBreakdown({ items }: { items: any[] }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: 16, paddingBottom: 32 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { color: Colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  container: { flex: 1, backgroundColor: Colors.canvas },
+  content: { padding: 16, paddingBottom: 32, gap: 14 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyEmoji: { fontSize: 44, marginBottom: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.ink, marginBottom: 6 },
+  emptyHint: { fontSize: 14, color: Colors.inkSoft, textAlign: 'center', lineHeight: 20 },
+
   mainCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    borderLeftWidth: 5,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    marginBottom: 16,
+    backgroundColor: Colors.surface, borderRadius: 24, padding: 22,
+    shadowColor: '#2b1d12', shadowOpacity: 0.07, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 }, elevation: 3,
   },
-  listName: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600', marginBottom: 12 },
-  budgetDisplay: { marginBottom: 16 },
-  budgetEur: { fontSize: 36, fontWeight: '800', color: Colors.textPrimary },
-  budgetBgn: { fontSize: 18, color: Colors.textSecondary, marginTop: 2 },
-  editHint: { fontSize: 11, color: Colors.textSecondary, marginTop: 6 },
-  editRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
+  listName: { fontSize: 12, color: Colors.inkSoft, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 14 },
+  budgetEur: { fontSize: 40, fontWeight: '800', color: Colors.ink, letterSpacing: -1 },
+  budgetBgn: { fontSize: 18, color: Colors.inkSoft, marginTop: 2 },
+  editHint: { fontSize: 11, color: Colors.inkFaint, marginTop: 6 },
+  editRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
   budgetInput: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+    flex: 1, borderWidth: 1.5, borderColor: Colors.accent, borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 22, fontWeight: '700', color: Colors.ink,
   },
-  currencyLabel: { fontSize: 20, fontWeight: '700', color: Colors.textSecondary },
+  currencyLabel: { fontSize: 20, fontWeight: '700', color: Colors.inkSoft },
   saveBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 10,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: Colors.accent, borderRadius: 10,
+    width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
   },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 18 },
   cancelBtn: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 10,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(43,29,18,0.12)', borderRadius: 10,
+    width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
   },
-  cancelBtnText: { color: Colors.textSecondary, fontWeight: '700', fontSize: 18 },
-  progressContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  progressBg: {
-    flex: 1,
-    height: 12,
-    backgroundColor: Colors.border,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  progressFill: { height: '100%', borderRadius: 6 },
+  cancelBtnText: { color: Colors.inkSoft, fontWeight: '700', fontSize: 16 },
+
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 10 },
+  progressBg: { flex: 1, height: 8, backgroundColor: Colors.surfaceAlt, borderRadius: 999, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 999 },
   progressPct: { fontWeight: '700', fontSize: 13, minWidth: 38, textAlign: 'right' },
+
   overBanner: {
-    backgroundColor: '#FFEBEE',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 4,
+    backgroundColor: 'rgba(168,65,42,0.10)', borderRadius: 10, padding: 10,
   },
-  overText: { color: Colors.error, fontWeight: '700', textAlign: 'center' },
-  remainingText: { color: Colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 4 },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  overText: { color: Colors.bad, fontWeight: '700', textAlign: 'center', fontSize: 14 },
+  remainingText: { fontSize: 13, color: Colors.inkSoft, textAlign: 'center' },
+
+  statsRow: { flexDirection: 'row', gap: 10 },
   statCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    borderTopWidth: 3,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    flex: 1, backgroundColor: Colors.surface, borderRadius: 16, padding: 14,
+    alignItems: 'center', borderTopWidth: 3,
+    shadowColor: '#2b1d12', shadowOpacity: 0.05, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 1,
   },
-  statIcon: { fontSize: 22, marginBottom: 4 },
-  statValue: { fontSize: 16, fontWeight: '800' },
-  statLabel: { fontSize: 10, color: Colors.textSecondary, marginTop: 2, textAlign: 'center' },
+  statEmoji: { fontSize: 20, marginBottom: 6 },
+  statValue: { fontSize: 15, fontWeight: '800' },
+  statLabel: { fontSize: 10, color: Colors.inkSoft, marginTop: 3, textAlign: 'center' },
+
   breakdownCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
+    shadowColor: '#2b1d12', shadowOpacity: 0.05, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 1,
   },
-  breakdownTitle: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary, marginBottom: 12 },
+  breakdownTitle: { fontSize: 13, fontWeight: '700', color: Colors.ink, marginBottom: 12 },
   breakdownRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  storeDot: { width: 12, height: 12, borderRadius: 6, marginRight: 10 },
-  breakdownStore: { flex: 1, fontSize: 14, color: Colors.textPrimary },
-  breakdownAmount: { fontSize: 14, fontWeight: '700' },
-  tipsCard: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    padding: 16,
-  },
-  tipsTitle: { fontSize: 14, fontWeight: '700', color: Colors.primary, marginBottom: 10 },
-  tip: { fontSize: 13, color: Colors.textPrimary, marginBottom: 6, lineHeight: 18 },
+  storeDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
+  breakdownStore: { flex: 1, fontSize: 14, color: Colors.ink },
+  breakdownAmt: { fontSize: 14, fontWeight: '700' },
+
+  tipsCard: { backgroundColor: Colors.accentSoft, borderRadius: 16, padding: 16, gap: 6 },
+  tipsTitle: { fontSize: 13, fontWeight: '700', color: Colors.accent, marginBottom: 4 },
+  tipRow: { flexDirection: 'row', gap: 8 },
+  tipDot: { fontSize: 14, color: Colors.accent, lineHeight: 20 },
+  tipText: { flex: 1, fontSize: 13, color: Colors.ink, lineHeight: 20 },
 });
