@@ -117,7 +117,7 @@ export default function SearchScreen() {
 
         {!selectedStore && item.cheapest_store && (
           <View style={styles.cheapestRow}>
-            <View style={[styles.storeDot, { backgroundColor: c.stores[item.cheapest_store.slug as keyof typeof c.stores] ?? c.accent }]} />
+            <StoreIcon slug={item.cheapest_store.slug} size={16} />
             <Text style={styles.cheapestLabel}>Най-евтино: </Text>
             <Text style={styles.cheapestStoreName}>{item.cheapest_store.name}</Text>
           </View>
@@ -335,7 +335,6 @@ function makeStyles(c: AppColors) {
     cheapestPill: { backgroundColor: c.accentSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
     cheapestPrice: { fontSize: 14, fontWeight: '800', color: c.accent },
     cheapestRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 5 },
-    storeDot: { width: 8, height: 8, borderRadius: 4 },
     cheapestLabel: { fontSize: 12, color: c.inkSoft },
     cheapestStoreName: { fontSize: 12, fontWeight: '700', color: c.ink },
     priceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

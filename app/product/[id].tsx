@@ -22,21 +22,22 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = useState<ProductWithPrices | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [activeListId, setActiveListId] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     if (id) getProductById(id).then(setProduct).finally(() => setLoading(false));
+    getActiveShoppingList().then((l) => setActiveListId(l?.id ?? null));
   }, [id]);
 
   const handleAddToList = async (price: Price) => {
+    if (activeListId === null) {
+      Alert.alert('Няма списък', 'Създай списък за пазаруване в таб „Списък".');
+      return;
+    }
     setAddingId(price.store_id);
     try {
-      const list = await getActiveShoppingList();
-      if (!list) {
-        Alert.alert('Няма списък', 'Създай списък за пазаруване в таб „Списък".');
-        return;
-      }
       const eff = price.is_promotion && price.promo_price ? price.promo_price : price.price;
-      await addItemToList(list.id, product!.name, eff, product!.id, price.store_id);
+      await addItemToList(activeListId!, product!.name, eff, product!.id, price.store_id);
       Alert.alert('Добавено ✓', `„${product!.name}" от ${price.store?.name}`, [
         { text: 'Продължи', style: 'cancel' },
         { text: 'Към списъка', onPress: () => router.push('/(tabs)/list') },
@@ -69,7 +70,7 @@ export default function ProductDetailScreen() {
         : sorted[sorted.length - 1].price)
     : 0;
   const maxSaving = mostExpVal - cheapestVal;
-  const maxStoreTotal = sorted.reduce((max, p) => {
+  const maxStorePrice = sorted.reduce((max, p) => {
     const v = p.is_promotion && p.promo_price ? p.promo_price : p.price;
     return Math.max(max, v);
   }, 0);
@@ -132,7 +133,7 @@ export default function ProductDetailScreen() {
           const eff = price.is_promotion && price.promo_price ? price.promo_price : price.price;
           const isCheapest = idx === 0;
           const isAdding = addingId === price.store_id;
-          const barPct = maxStoreTotal > 0 ? (eff / maxStoreTotal) * 100 : 0;
+          const barPct = maxStorePrice > 0 ? (cheapestVal / eff) * 100 : 0;
 
           return (
             <View
@@ -244,7 +245,6 @@ function makeStyles(c: AppColors) {
     priceCardAccent: { width: 5, alignSelf: 'stretch' },
     priceCardBody: { flex: 1, padding: 14 },
     storeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-    storeDot: { width: 10, height: 10, borderRadius: 5 },
     storeName: { fontSize: 14, fontWeight: '700' },
     cheapestBadge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
     cheapestBadgeText: { fontSize: 11, fontWeight: '700' },

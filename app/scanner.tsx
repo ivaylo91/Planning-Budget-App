@@ -20,7 +20,7 @@ export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [torch, setTorch] = useState(false);
   const [status, setStatus] = useState<'idle' | 'scanning' | 'found' | 'notfound'>('idle');
-  const [statusText, setStatusText] = useState('Навочи камерата към баркод');
+  const [statusText, setStatusText] = useState('Насочи камерата към баркод');
   const cooldownRef = useRef(false);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
@@ -65,7 +65,7 @@ export default function ScannerScreen() {
         setStatusText('Продуктът не е намерен в базата');
         setTimeout(() => {
           setStatus('idle');
-          setStatusText('Навочи камерата към баркод');
+          setStatusText('Насочи камерата към баркод');
           cooldownRef.current = false;
         }, SCAN_COOLDOWN);
       }

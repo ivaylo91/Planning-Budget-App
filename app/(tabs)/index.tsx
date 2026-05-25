@@ -83,9 +83,8 @@ export default function HomeScreen() {
               <Text style={styles.subGreeting} numberOfLines={1}>{displayName}</Text>
             </View>
           </View>
-          <TouchableOpacity style={[styles.bellBtn, { backgroundColor: c.surface }]}>
+          <TouchableOpacity style={[styles.bellBtn, { backgroundColor: c.surface }]} onPress={() => router.push('/history')}>
             <BellIcon size={19} color={c.inkSoft} />
-            <View style={styles.bellDot} />
           </TouchableOpacity>
         </View>
 
@@ -242,11 +241,6 @@ function makeStyles(c: AppColors) {
     bellBtn: {
       width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
       shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 1,
-    },
-    bellDot: {
-      position: 'absolute', top: 9, right: 9,
-      width: 8, height: 8, borderRadius: 4,
-      backgroundColor: c.accent, borderWidth: 1.5, borderColor: c.surface,
     },
 
     budgetCard: {

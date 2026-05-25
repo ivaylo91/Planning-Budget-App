@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors, AppColors, Gradients } from '../constants/colors';
 import { getActiveShoppingList, toggleItemChecked } from '../lib/queries';
+import { notifyOverBudget } from '../lib/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formatPrice, eurToBgn } from '../lib/currency';
 import { ChevronLeftIcon, CheckIcon } from '../components/Icons';
 import { StoreIcon } from '../components/StoreIcon';
@@ -48,17 +50,28 @@ export default function ShoppingScreen() {
   const handleFinish = () => {
     const all = list?.items ?? [];
     const remaining = all.filter((i) => !i.is_checked).length;
+
+    const doFinish = async () => {
+      if (isOver && list) {
+        const notifEnabled = await AsyncStorage.getItem('notif_budget');
+        if (notifEnabled !== '0') {
+          notifyOverBudget(total - budgetBgn, list.name);
+        }
+      }
+      router.back();
+    };
+
     if (remaining > 0) {
       Alert.alert(
         'Завърши пазаруването',
         `Все още имаш ${remaining} непотвърден${remaining === 1 ? '' : 'и'} ${remaining === 1 ? 'продукт' : 'продукта'}. Сигурен ли си?`,
         [
           { text: 'Не', style: 'cancel' },
-          { text: 'Завърши', onPress: () => router.back() },
+          { text: 'Завърши', onPress: doFinish },
         ]
       );
     } else {
-      router.back();
+      doFinish();
     }
   };
 
