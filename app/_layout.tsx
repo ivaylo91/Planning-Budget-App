@@ -44,6 +44,7 @@ function Navigator() {
         <Stack.Screen name="auth" />
         <Stack.Screen name="product/[id]" />
         <Stack.Screen name="history" />
+        <Stack.Screen name="shopping" />
       </Stack>
     </>
   );

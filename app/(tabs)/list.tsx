@@ -13,7 +13,7 @@ import {
 } from '../../lib/queries';
 import { formatPrice, eurToBgn, formatEur } from '../../lib/currency';
 import { notifyOverBudget } from '../../lib/notifications';
-import { FilterIcon, PlusIcon, TrashIcon, CheckIcon } from '../../components/Icons';
+import { FilterIcon, PlusIcon, TrashIcon, CheckIcon, BagIcon } from '../../components/Icons';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import type { ShoppingList, ListItem } from '../../types';
 
@@ -259,9 +259,21 @@ export default function ListScreen() {
           </View>
         }
         ListFooterComponent={
-          <TouchableOpacity style={styles.newListBtn} onPress={() => setShowNewList(true)}>
-            <Text style={styles.newListBtnText}>+ Нов списък</Text>
-          </TouchableOpacity>
+          <View style={styles.footer}>
+            {allItems.filter((i) => !i.is_checked).length > 0 && (
+              <TouchableOpacity
+                style={[styles.shopBtn, { backgroundColor: c.accent }]}
+                onPress={() => router.push('/shopping')}
+                activeOpacity={0.85}
+              >
+                <BagIcon size={18} color="#fff" />
+                <Text style={styles.shopBtnText}>Пазарувам!</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.newListBtn} onPress={() => setShowNewList(true)}>
+              <Text style={styles.newListBtnText}>+ Нов списък</Text>
+            </TouchableOpacity>
+          </View>
         }
       />
 
@@ -474,7 +486,10 @@ function makeStyles(c: AppColors) {
 
     list: { paddingHorizontal: 14 },
     emptyList: { alignItems: 'center', paddingTop: 40, gap: 8 },
-    newListBtn: { alignSelf: 'center', marginTop: 20, marginBottom: 4, paddingVertical: 11, paddingHorizontal: 24, borderRadius: 999, borderWidth: 1.5, borderColor: c.accent },
+    footer: { alignItems: 'center', gap: 12, marginTop: 12, marginBottom: 4 },
+    shopBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 999 },
+    shopBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    newListBtn: { paddingVertical: 11, paddingHorizontal: 24, borderRadius: 999, borderWidth: 1.5, borderColor: c.accent },
     newListBtnText: { color: c.accent, fontWeight: '700', fontSize: 13 },
   });
 }
