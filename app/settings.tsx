@@ -150,6 +150,20 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {user?.email === 'ipenev91@gmail.com' && (
+          <>
+            <SectionLabel label="Разработчик" c={c} />
+            <View style={[styles.section, { backgroundColor: c.surface }]}>
+              <RowLink
+                icon={<Text style={{ fontSize: 15 }}>⚙️</Text>}
+                label="Admin панел"
+                onPress={() => router.push('/admin')}
+                c={c}
+              />
+            </View>
+          </>
+        )}
+
         <Text style={[styles.footer, { color: c.inkFaint }]}>
           © 2026 Пазарувай умно
         </Text>

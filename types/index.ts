@@ -50,6 +50,16 @@ export type ShoppingList = {
   items?: ListItem[];
 };
 
+export type ScrapeRun = {
+  id: string;
+  store_slug: string;
+  status: 'running' | 'success' | 'partial' | 'error' | 'empty';
+  products_upserted: number;
+  error_message: string | null;
+  started_at: string;
+  finished_at: string | null;
+};
+
 export type ListItem = {
   id: string;
   list_id: string;

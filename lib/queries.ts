@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { ProductWithPrices, ShoppingList, ListItem } from '../types';
+import type { ProductWithPrices, ShoppingList, ListItem, ScrapeRun } from '../types';
 
 export async function searchProducts(query: string): Promise<ProductWithPrices[]> {
   const { data, error } = await supabase
@@ -171,6 +171,17 @@ export async function setActiveList(listId: string): Promise<void> {
     .eq('id', listId);
 
   if (error) throw error;
+}
+
+export async function getScrapeRuns(limit = 40): Promise<ScrapeRun[]> {
+  const { data, error } = await supabase
+    .from('scrape_runs')
+    .select('*')
+    .order('started_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function getWatchlist(): Promise<ProductWithPrices[]> {
