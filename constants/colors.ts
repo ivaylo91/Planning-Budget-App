@@ -1,4 +1,3 @@
-import { useColorScheme } from 'react-native';
 
 const pastel = {
   canvas: '#fde9d6',
@@ -51,7 +50,7 @@ const pastelDark = {
 export type AppColors = typeof pastel;
 
 export function useColors(): AppColors {
-  return useColorScheme() === 'dark' ? pastelDark : pastel;
+  return pastel;
 }
 
 export const Colors = pastel;
