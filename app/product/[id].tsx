@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors } from '../../constants/colors';
+import { useColors, AppColors } from '../../constants/colors';
 import { getProductById, getActiveShoppingList, addItemToList } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import type { ProductWithPrices, Price } from '../../types';
 
 export default function ProductDetailScreen() {
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [product, setProduct] = useState<ProductWithPrices | null>(null);
@@ -42,7 +44,7 @@ export default function ProductDetailScreen() {
   };
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color={Colors.accent} /></View>;
+    return <View style={styles.centered}><ActivityIndicator size="large" color={c.accent} /></View>;
   }
   if (!product) {
     return <View style={styles.centered}><Text style={styles.errorText}>Продуктът не е намерен.</Text></View>;
@@ -59,7 +61,6 @@ export default function ProductDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Header card */}
       <View style={styles.headerCard}>
         <Text style={styles.productName}>{product.name}</Text>
         {product.brand && <Text style={styles.brand}>{product.brand}</Text>}
@@ -75,7 +76,6 @@ export default function ProductDetailScreen() {
         </View>
       </View>
 
-      {/* Savings banner */}
       {maxSaving > 0.01 && (
         <View style={styles.savingsBanner}>
           <Text style={styles.savingsText}>
@@ -87,7 +87,7 @@ export default function ProductDetailScreen() {
       <Text style={styles.sectionTitle}>Сравнение на цени</Text>
 
       {sorted.map((price, idx) => {
-        const storeColor = Colors.stores[price.store?.slug as keyof typeof Colors.stores] ?? Colors.accent;
+        const storeColor = c.stores[price.store?.slug as keyof typeof c.stores] ?? c.accent;
         const eff = price.is_promotion && price.promo_price ? price.promo_price : price.price;
         const isCheapest = idx === 0;
         const isAdding = addingId === price.store_id;
@@ -140,66 +140,54 @@ export default function ProductDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.canvas },
-  content: { padding: 16, paddingBottom: 40, gap: 10 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: Colors.inkSoft, fontSize: 15 },
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.canvas },
+    content: { padding: 16, paddingBottom: 40, gap: 10 },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    errorText: { color: c.inkSoft, fontSize: 15 },
 
-  headerCard: {
-    backgroundColor: Colors.surface, borderRadius: 22, padding: 20,
-    shadowColor: '#2b1d12', shadowOpacity: 0.06, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 2,
-  },
-  productName: { fontSize: 22, fontWeight: '800', color: Colors.ink, letterSpacing: -0.5, marginBottom: 4 },
-  brand: { fontSize: 13, color: Colors.inkFaint, marginBottom: 12 },
-  metaRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  metaChip: {
-    backgroundColor: Colors.surfaceAlt, borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 5,
-  },
-  metaChipText: { fontSize: 12, color: Colors.inkSoft, fontWeight: '600' },
+    headerCard: {
+      backgroundColor: c.surface, borderRadius: 22, padding: 20,
+      shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 }, elevation: 2,
+    },
+    productName: { fontSize: 22, fontWeight: '800', color: c.ink, letterSpacing: -0.5, marginBottom: 4 },
+    brand: { fontSize: 13, color: c.inkFaint, marginBottom: 12 },
+    metaRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    metaChip: { backgroundColor: c.surfaceAlt, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
+    metaChipText: { fontSize: 12, color: c.inkSoft, fontWeight: '600' },
 
-  savingsBanner: {
-    backgroundColor: Colors.accentSoft, borderRadius: 14, padding: 14,
-  },
-  savingsText: { color: Colors.accent, fontWeight: '600', fontSize: 13, lineHeight: 18 },
+    savingsBanner: { backgroundColor: c.accentSoft, borderRadius: 14, padding: 14 },
+    savingsText: { color: c.accent, fontWeight: '600', fontSize: 13, lineHeight: 18 },
 
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: Colors.inkSoft, textTransform: 'uppercase', letterSpacing: 0.5 },
+    sectionTitle: { fontSize: 13, fontWeight: '700', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  priceCard: {
-    backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
-    flexDirection: 'row', alignItems: 'center', borderLeftWidth: 5,
-    shadowColor: '#2b1d12', shadowOpacity: 0.05, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 1,
-  },
-  priceCardBest: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5, borderLeftWidth: 5,
-    borderColor: Colors.accentSoft,
-  },
-  priceCardLeft: { flex: 1 },
-  storeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  storeDot: { width: 10, height: 10, borderRadius: 5 },
-  storeName: { fontSize: 14, fontWeight: '700', color: Colors.ink },
-  cheapestBadge: {
-    backgroundColor: Colors.accentSoft, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3,
-  },
-  cheapestBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.accent },
-  promoPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  oldPrice: { fontSize: 13, color: Colors.inkFaint, textDecorationLine: 'line-through' },
-  newPrice: { fontSize: 22, fontWeight: '800' },
-  promoBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  promoBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  regularPrice: { fontSize: 22, fontWeight: '800', color: Colors.ink },
-  promoEnd: { fontSize: 11, color: Colors.inkFaint, marginTop: 4 },
+    priceCard: {
+      backgroundColor: c.surface, borderRadius: 16, padding: 16,
+      flexDirection: 'row', alignItems: 'center', borderLeftWidth: 5,
+      shadowColor: c.shadow, shadowOpacity: 0.05, shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    },
+    priceCardBest: { borderWidth: 1.5, borderLeftWidth: 5, borderColor: c.accentSoft },
+    priceCardLeft: { flex: 1 },
+    storeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    storeDot: { width: 10, height: 10, borderRadius: 5 },
+    storeName: { fontSize: 14, fontWeight: '700', color: c.ink },
+    cheapestBadge: { backgroundColor: c.accentSoft, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
+    cheapestBadgeText: { fontSize: 11, fontWeight: '700', color: c.accent },
+    promoPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    oldPrice: { fontSize: 13, color: c.inkFaint, textDecorationLine: 'line-through' },
+    newPrice: { fontSize: 22, fontWeight: '800' },
+    promoBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    promoBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+    regularPrice: { fontSize: 22, fontWeight: '800', color: c.ink },
+    promoEnd: { fontSize: 11, color: c.inkFaint, marginTop: 4 },
 
-  addBtn: {
-    width: 46, height: 46, borderRadius: 23,
-    alignItems: 'center', justifyContent: 'center', marginLeft: 12,
-  },
-  addBtnLoading: { opacity: 0.5 },
-  addBtnText: { color: '#fff', fontSize: 26, fontWeight: '300', lineHeight: 30 },
+    addBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', marginLeft: 12 },
+    addBtnLoading: { opacity: 0.5 },
+    addBtnText: { color: '#fff', fontSize: 26, fontWeight: '300', lineHeight: 30 },
 
-  addHint: { textAlign: 'center', color: Colors.inkFaint, fontSize: 12 },
-});
+    addHint: { textAlign: 'center', color: c.inkFaint, fontSize: 12 },
+  });
+}
