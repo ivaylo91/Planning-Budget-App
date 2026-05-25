@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, AppColors, Gradients } from '../../constants/colors';
 import { searchProducts } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
-import { SearchIcon, XIcon } from '../../components/Icons';
+import { SearchIcon, XIcon, BarcodeIcon } from '../../components/Icons';
 import { StoreIcon } from '../../components/StoreIcon';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import type { ProductWithPrices } from '../../types';
@@ -178,6 +178,9 @@ export default function SearchScreen() {
               <Text style={styles.searchBtnText}>Търси</Text>
             </LinearGradient>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.scanBtn} onPress={() => router.push('/scanner')}>
+            <BarcodeIcon size={20} color={c.accent} />
+          </TouchableOpacity>
         </View>
 
         {/* Store filter chips — always visible */}
@@ -281,6 +284,11 @@ function makeStyles(c: AppColors) {
     input: { flex: 1, fontSize: 15, color: c.ink, fontWeight: '500' },
     searchBtn: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
     searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    scanBtn: {
+      width: 44, height: 44, borderRadius: 14,
+      backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: c.accent + '30',
+    },
 
     storeFilterRow: { paddingBottom: 10, gap: 8, paddingRight: 4 },
     storeChip: {

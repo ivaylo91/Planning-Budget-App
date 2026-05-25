@@ -20,6 +20,17 @@ export async function searchProducts(query: string): Promise<ProductWithPrices[]
   return (data ?? []).map(enrichProduct);
 }
 
+export async function getProductByBarcode(barcode: string): Promise<ProductWithPrices | null> {
+  const { data, error } = await supabase
+    .from('products')
+    .select(`*, category:categories(*), prices(*, store:stores(*))`)
+    .eq('barcode', barcode)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? enrichProduct(data) : null;
+}
+
 export async function getProductById(id: string): Promise<ProductWithPrices | null> {
   const { data, error } = await supabase
     .from('products')
