@@ -10,6 +10,7 @@ import { useColors, AppColors, Gradients } from '../../constants/colors';
 import { searchProducts } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import { SearchIcon, XIcon } from '../../components/Icons';
+import { StoreIcon } from '../../components/StoreIcon';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import type { ProductWithPrices } from '../../types';
 
@@ -129,8 +130,7 @@ export default function SearchScreen() {
             const storeColor = c.stores[p.store?.slug as keyof typeof c.stores] ?? c.accent;
             return (
               <View key={p.store_id} style={[styles.priceChip, isLowest && { backgroundColor: c.accentSoft }]}>
-                <View style={[styles.storeColorDot, { backgroundColor: storeColor }]} />
-                <Text style={styles.priceChipStore}>{p.store?.name.slice(0, 4)}</Text>
+                <StoreIcon slug={p.store?.slug ?? ''} size={16} />
                 <Text style={[styles.priceChipVal, isLowest && { color: c.accent }]}>{formatPrice(eff)}</Text>
                 {p.is_promotion && <Text style={styles.promoMark}>%</Text>}
               </View>
@@ -190,9 +190,7 @@ export default function SearchScreen() {
                 style={[styles.storeChip, isActive && { backgroundColor: store.color, borderColor: store.color }]}
                 onPress={() => handleStoreSelect(store.slug)}
               >
-                {store.slug && (
-                  <View style={[styles.storeChipDot, { backgroundColor: isActive ? '#fff' : store.color }]} />
-                )}
+                {store.slug && <StoreIcon slug={store.slug} size={18} />}
                 <Text style={[styles.storeChipText, isActive && { color: '#fff', fontWeight: '700' }]}>
                   {store.name}
                 </Text>
@@ -286,11 +284,10 @@ function makeStyles(c: AppColors) {
 
     storeFilterRow: { paddingBottom: 10, gap: 8, paddingRight: 4 },
     storeChip: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
+      flexDirection: 'row', alignItems: 'center', gap: 6,
       borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7,
       backgroundColor: c.canvas, borderWidth: 1.5, borderColor: c.divider,
     },
-    storeChipDot: { width: 8, height: 8, borderRadius: 4 },
     storeChipText: { fontSize: 12, fontWeight: '600', color: c.inkSoft },
 
     catGrid: { padding: 16, gap: 4 },
@@ -339,8 +336,6 @@ function makeStyles(c: AppColors) {
       paddingHorizontal: 8, paddingVertical: 5,
       flexDirection: 'row', gap: 4, alignItems: 'center',
     },
-    storeColorDot: { width: 6, height: 6, borderRadius: 3 },
-    priceChipStore: { fontSize: 10, color: c.inkSoft, fontWeight: '600' },
     priceChipVal: { fontSize: 12, fontWeight: '700', color: c.ink },
     promoMark: { fontSize: 9, fontWeight: '800', color: c.accent, backgroundColor: c.accentSoft, paddingHorizontal: 3, borderRadius: 4 },
   });

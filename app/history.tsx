@@ -85,7 +85,7 @@ export default function HistoryScreen() {
         {list.is_active && (
           <View style={styles.activeBadgeRow}>
             <LinearGradient colors={Gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.activeBadge}>
-              <CheckIcon size={11} color="#fff" strokeWidth={3} />
+              <CheckIcon size={11} color="#fff" />
               <Text style={styles.activeBadgeText}>Активен</Text>
             </LinearGradient>
           </View>

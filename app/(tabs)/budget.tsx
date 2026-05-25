@@ -112,7 +112,7 @@ export default function BudgetScreen() {
                   placeholderTextColor={c.inkFaint}
                 />
                 <TouchableOpacity style={[styles.editActionBtn, { backgroundColor: c.accent }]} onPress={handleSaveBudget}>
-                  <CheckIcon size={16} color="#fff" strokeWidth={3} />
+                  <CheckIcon size={16} color="#fff" />
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.editActionBtn, { backgroundColor: c.surfaceAlt }]} onPress={() => setEditingBudget(false)}>
                   <Text style={{ color: c.inkSoft, fontWeight: '700', fontSize: 16 }}>✕</Text>

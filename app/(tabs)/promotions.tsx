@@ -9,6 +9,7 @@ import { useColors, AppColors } from '../../constants/colors';
 import { getPromotions } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import { TagIcon } from '../../components/Icons';
+import { StoreIcon } from '../../components/StoreIcon';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import type { ProductWithPrices, Price } from '../../types';
 
@@ -40,7 +41,7 @@ export default function PromotionsScreen() {
     return (
       <View key={p.store_id} style={[styles.promoTag, { borderLeftColor: storeColor }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <View style={[styles.storeDot, { backgroundColor: storeColor }]} />
+          <StoreIcon slug={p.store?.slug ?? ''} size={20} />
           <Text style={[styles.storeTagName, { color: storeColor }]}>{p.store?.name}</Text>
           <View style={[styles.pctBadge, { backgroundColor: storeColor }]}>
             <Text style={styles.pctBadgeText}>-{pct}%</Text>
@@ -139,7 +140,6 @@ function makeStyles(c: AppColors) {
       backgroundColor: c.canvas, borderRadius: 12, padding: 10,
       borderLeftWidth: 3, minWidth: 110,
     },
-    storeDot: { width: 8, height: 8, borderRadius: 4 },
     storeTagName: { fontSize: 11, fontWeight: '700', flex: 1 },
     pctBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     pctBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },

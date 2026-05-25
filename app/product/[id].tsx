@@ -10,6 +10,7 @@ import { useColors, AppColors, Gradients } from '../../constants/colors';
 import { getProductById, getActiveShoppingList, addItemToList } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import { ChevronLeftIcon, SparkleIcon } from '../../components/Icons';
+import { StoreIcon } from '../../components/StoreIcon';
 import type { ProductWithPrices, Price } from '../../types';
 
 export default function ProductDetailScreen() {
@@ -141,7 +142,7 @@ export default function ProductDetailScreen() {
               <View style={[styles.priceCardAccent, { backgroundColor: storeColor }]} />
               <View style={styles.priceCardBody}>
                 <View style={styles.storeRow}>
-                  <View style={[styles.storeDot, { backgroundColor: storeColor }]} />
+                  <StoreIcon slug={price.store?.slug ?? ''} size={24} />
                   <Text style={[styles.storeName, { color: c.ink }]}>{price.store?.name}</Text>
                   {isCheapest && (
                     <View style={[styles.cheapestBadge, { backgroundColor: c.accentSoft }]}>

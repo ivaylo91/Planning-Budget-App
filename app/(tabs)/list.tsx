@@ -329,7 +329,7 @@ function SwipeableItem({
             }, item.is_checked && { backgroundColor: c.good }]}
             onPress={() => onToggle(item)}
           >
-            {item.is_checked && <CheckIcon size={13} color="#fff" strokeWidth={3} />}
+            {item.is_checked && <CheckIcon size={13} color="#fff" />}
           </TouchableOpacity>
 
           {/* Content */}
