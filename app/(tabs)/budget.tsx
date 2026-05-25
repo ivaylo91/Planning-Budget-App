@@ -3,20 +3,21 @@ import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, TextInput, Alert, ScrollView, RefreshControl,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, AppColors, Gradients } from '../../constants/colors';
 import { getActiveShoppingList, updateBudget } from '../../lib/queries';
 import { eurToBgn, formatPrice, formatEur, bgnToEur } from '../../lib/currency';
 import { DonutChart } from '../../components/DonutChart';
-import { CheckIcon, SparkleIcon } from '../../components/Icons';
+import { CheckIcon, SparkleIcon, ChevronRightIcon } from '../../components/Icons';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import type { ShoppingList } from '../../types';
 
 export default function BudgetScreen() {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [list, setList] = useState<ShoppingList | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,6 +151,20 @@ export default function BudgetScreen() {
 
       {items.length > 0 && <StoreBreakdown items={items} c={c} />}
 
+      {/* Trends link */}
+      <TouchableOpacity
+        style={[styles.trendsBtn, { backgroundColor: c.surface }]}
+        onPress={() => router.push('/trends')}
+        activeOpacity={0.8}
+      >
+        <Text style={{ fontSize: 20 }}>📊</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.trendsBtnTitle, { color: c.ink }]}>Тенденции в разходите</Text>
+          <Text style={[styles.trendsBtnSub, { color: c.inkSoft }]}>История, магазини, прозрения</Text>
+        </View>
+        <ChevronRightIcon size={16} color={c.inkFaint} />
+      </TouchableOpacity>
+
       {/* Tips card */}
       <LinearGradient
         colors={['#fde9d6', '#fff7ed']}
@@ -257,6 +272,15 @@ function makeStyles(c: AppColors) {
     statusBannerText: { fontWeight: '700', textAlign: 'center', fontSize: 13 },
 
     statsRow: { flexDirection: 'row', gap: 10 },
+
+    trendsBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      borderRadius: 18, padding: 16,
+      shadowColor: c.shadow, shadowOpacity: 0.05, shadowRadius: 10,
+      shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    },
+    trendsBtnTitle: { fontSize: 14, fontWeight: '700' },
+    trendsBtnSub: { fontSize: 11, marginTop: 2 },
 
     tipsCard: { borderRadius: 18, padding: 16, gap: 5 },
     tipsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },

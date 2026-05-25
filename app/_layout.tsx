@@ -46,6 +46,7 @@ function Navigator() {
         <Stack.Screen name="history" />
         <Stack.Screen name="shopping" />
         <Stack.Screen name="scanner" />
+        <Stack.Screen name="trends" />
       </Stack>
     </>
   );
