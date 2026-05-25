@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, RefreshControl,
+  StyleSheet, RefreshControl, Alert,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,15 +12,35 @@ import { formatPrice, eurToBgn, formatEur } from '../../lib/currency';
 import { DonutChart } from '../../components/DonutChart';
 import { SearchIcon, TagIcon, ChevronRightIcon, SparkleIcon, BellIcon, SwapIcon } from '../../components/Icons';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
+import { useAuth } from '../../lib/auth';
 import type { ShoppingList } from '../../types';
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h >= 6 && h < 12) return 'Добро утро! 👋';
+  if (h >= 12 && h < 18) return 'Добър ден! 👋';
+  if (h >= 18 && h < 24) return 'Добър вечер! 👋';
+  return 'Добра нощ! 🌙';
+}
 
 export default function HomeScreen() {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
   const [list, setList] = useState<ShoppingList | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const initials = user?.email?.[0].toUpperCase() ?? '?';
+  const displayName = user?.email?.split('@')[0] ?? '';
+
+  const handleAvatarPress = () => {
+    Alert.alert('Профил', user?.email ?? '', [
+      { text: 'Отказ', style: 'cancel' },
+      { text: 'Изход', style: 'destructive', onPress: signOut },
+    ]);
+  };
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -53,12 +73,14 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <LinearGradient colors={Gradients.accent} style={styles.avatar}>
-              <Text style={styles.avatarText}>ПУ</Text>
-            </LinearGradient>
+            <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8}>
+              <LinearGradient colors={Gradients.accent} style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
             <View>
-              <Text style={styles.greeting}>Добро утро! 👋</Text>
-              <Text style={styles.subGreeting}>Пазарувай умно днес</Text>
+              <Text style={styles.greeting}>{greeting()}</Text>
+              <Text style={styles.subGreeting} numberOfLines={1}>{displayName}</Text>
             </View>
           </View>
           <TouchableOpacity style={[styles.bellBtn, { backgroundColor: c.surface }]}>

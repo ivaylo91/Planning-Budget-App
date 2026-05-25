@@ -71,11 +71,12 @@ export async function getActiveShoppingList(): Promise<ShoppingList | null> {
 }
 
 export async function createShoppingList(name: string, budgetEur: number): Promise<ShoppingList> {
+  const { data: { user } } = await supabase.auth.getUser();
   await supabase.from('shopping_lists').update({ is_active: false }).eq('is_active', true);
 
   const { data, error } = await supabase
     .from('shopping_lists')
-    .insert({ name, budget_eur: budgetEur, is_active: true })
+    .insert({ name, budget_eur: budgetEur, is_active: true, user_id: user!.id })
     .select()
     .single();
 
