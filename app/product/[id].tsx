@@ -7,9 +7,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, AppColors, Gradients } from '../../constants/colors';
-import { getProductById, getActiveShoppingList, addItemToList } from '../../lib/queries';
+import { getProductById, getActiveShoppingList, addItemToList, isInWatchlist, addToWatchlist, removeFromWatchlist } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
-import { ChevronLeftIcon, SparkleIcon } from '../../components/Icons';
+import { ChevronLeftIcon, SparkleIcon, HeartIcon } from '../../components/Icons';
 import { StoreIcon } from '../../components/StoreIcon';
 import { ProductImage } from '../../components/ProductImage';
 import type { ProductWithPrices, Price } from '../../types';
@@ -24,11 +24,30 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<string | null>(null);
   const [activeListId, setActiveListId] = useState<string | null | undefined>(undefined);
+  const [watched, setWatched] = useState(false);
+  const [watchLoading, setWatchLoading] = useState(false);
 
   useEffect(() => {
-    if (id) getProductById(id).then(setProduct).finally(() => setLoading(false));
+    if (!id) return;
+    getProductById(id).then(setProduct).finally(() => setLoading(false));
     getActiveShoppingList().then((l) => setActiveListId(l?.id ?? null));
+    isInWatchlist(id).then(setWatched);
   }, [id]);
+
+  const handleToggleWatch = async () => {
+    if (watchLoading || !id) return;
+    setWatchLoading(true);
+    const next = !watched;
+    setWatched(next);
+    try {
+      if (next) await addToWatchlist(id);
+      else await removeFromWatchlist(id);
+    } catch {
+      setWatched(!next);
+    } finally {
+      setWatchLoading(false);
+    }
+  };
 
   const handleAddToList = async (price: Price) => {
     if (activeListId === null) {
@@ -84,7 +103,9 @@ export default function ProductDetailScreen() {
           <ChevronLeftIcon size={20} color={c.ink} />
         </TouchableOpacity>
         <Text style={styles.navTitle} numberOfLines={1}>{product.name}</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: c.surface }]} onPress={handleToggleWatch} disabled={watchLoading}>
+          <HeartIcon size={18} color={watched ? '#e05252' : c.inkFaint} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView

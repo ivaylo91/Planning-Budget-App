@@ -173,6 +173,50 @@ export async function setActiveList(listId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function getWatchlist(): Promise<ProductWithPrices[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from('watchlist')
+    .select(`product:products(*, category:categories(*), prices(*, store:stores(*)))`)
+    .eq('user_id', user!.id)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row: any) => enrichProduct(row.product)).filter(Boolean);
+}
+
+export async function isInWatchlist(productId: string): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data } = await supabase
+    .from('watchlist')
+    .select('id')
+    .eq('user_id', user!.id)
+    .eq('product_id', productId)
+    .maybeSingle();
+
+  return !!data;
+}
+
+export async function addToWatchlist(productId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from('watchlist')
+    .insert({ user_id: user!.id, product_id: productId });
+
+  if (error) throw error;
+}
+
+export async function removeFromWatchlist(productId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from('watchlist')
+    .delete()
+    .eq('user_id', user!.id)
+    .eq('product_id', productId);
+
+  if (error) throw error;
+}
+
 function enrichProduct(product: any): ProductWithPrices {
   const prices = product.prices ?? [];
   const activePrices = prices.map((p: any) => ({

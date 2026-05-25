@@ -48,6 +48,7 @@ function Navigator() {
         <Stack.Screen name="scanner" />
         <Stack.Screen name="trends" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="watchlist" />
       </Stack>
     </>
   );

@@ -7,13 +7,15 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors, AppColors, Gradients } from '../../constants/colors';
-import { getActiveShoppingList } from '../../lib/queries';
+import { getActiveShoppingList, getWatchlist } from '../../lib/queries';
 import { formatPrice, eurToBgn, formatEur } from '../../lib/currency';
 import { DonutChart } from '../../components/DonutChart';
-import { SearchIcon, TagIcon, ChevronRightIcon, SparkleIcon, BellIcon, SwapIcon } from '../../components/Icons';
+import { SearchIcon, TagIcon, ChevronRightIcon, SparkleIcon, BellIcon, SwapIcon, HeartIcon } from '../../components/Icons';
+import { StoreIcon } from '../../components/StoreIcon';
+import { ProductImage } from '../../components/ProductImage';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import { useAuth } from '../../lib/auth';
-import type { ShoppingList } from '../../types';
+import type { ShoppingList, ProductWithPrices } from '../../types';
 
 function greeting() {
   const h = new Date().getHours();
@@ -30,6 +32,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [list, setList] = useState<ShoppingList | null>(null);
+  const [watched, setWatched] = useState<ProductWithPrices[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const initials = user?.email?.[0].toUpperCase() ?? '?';
@@ -40,8 +43,12 @@ export default function HomeScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const data = await getActiveShoppingList();
-      setList(data);
+      const [listData, watchData] = await Promise.all([
+        getActiveShoppingList(),
+        getWatchlist().catch(() => []),
+      ]);
+      setList(listData);
+      setWatched(watchData.slice(0, 3));
     } finally {
       setRefreshing(false);
     }
@@ -140,6 +147,41 @@ export default function HomeScreen() {
             c={c}
           />
         </View>
+
+        {/* Watchlist preview */}
+        {watched.length > 0 && (
+          <TouchableOpacity
+            style={[styles.listCard, { backgroundColor: c.surface }]}
+            onPress={() => router.push('/watchlist')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.listCardHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <HeartIcon size={13} color="#e05252" />
+                <Text style={styles.listCardTitle}>Следени продукти</Text>
+              </View>
+              <View style={[styles.listCardChip, { backgroundColor: c.accentSoft }]}>
+                <Text style={[styles.listCardChipText, { color: c.accent }]}>{watched.length}</Text>
+              </View>
+            </View>
+            {watched.map((item) => (
+              <View key={item.id} style={styles.watchedItem}>
+                <ProductImage uri={item.image_url} fallback={item.category?.icon ?? '📦'} size={32} borderRadius={8} bgColor={c.surfaceAlt} />
+                <Text style={[styles.listItemName, { color: c.ink }]} numberOfLines={1}>{item.name}</Text>
+                {item.cheapest_store && (
+                  <StoreIcon slug={item.cheapest_store.slug} size={14} />
+                )}
+                {item.cheapest_price != null && (
+                  <Text style={[styles.listItemPrice, { color: c.accent }]}>{formatPrice(item.cheapest_price)}</Text>
+                )}
+              </View>
+            ))}
+            <View style={[styles.listCardFooter, { borderTopColor: c.divider }]}>
+              <Text style={[styles.listCardSeeAll, { color: c.accent }]}>Виж всички</Text>
+              <ChevronRightIcon size={13} color={c.accent} />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* List preview */}
         {list && unchecked.length > 0 && (
@@ -265,6 +307,7 @@ function makeStyles(c: AppColors) {
     listCardChipText: { fontSize: 11, fontWeight: '700' },
     listItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
     listItemDot: { width: 8, height: 8, borderRadius: 4 },
+    watchedItem: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
     listItemName: { flex: 1, fontSize: 14 },
     listItemPrice: { fontSize: 13, fontWeight: '700' },
     listCardFooter: {

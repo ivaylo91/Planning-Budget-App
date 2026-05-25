@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors, AppColors, Gradients } from '../constants/colors';
 import { useAuth } from '../lib/auth';
-import { ChevronLeftIcon, ChevronRightIcon, BellIcon, ListIcon, UserIcon } from '../components/Icons';
+import { ChevronLeftIcon, ChevronRightIcon, BellIcon, ListIcon, HeartIcon, ChartIcon } from '../components/Icons';
 
 const APP_VERSION = '1.0.0';
 
@@ -98,6 +98,13 @@ export default function SettingsScreen() {
         <SectionLabel label="Акаунт" c={c} />
         <View style={[styles.section, { backgroundColor: c.surface }]}>
           <RowLink
+            icon={<HeartIcon size={16} color="#e05252" />}
+            label="Следени продукти"
+            onPress={() => router.push('/watchlist')}
+            c={c}
+          />
+          <View style={[styles.divider, { backgroundColor: c.divider }]} />
+          <RowLink
             icon={<ListIcon size={16} color={c.accent} />}
             label="История на списъците"
             onPress={() => router.push('/history')}
@@ -105,7 +112,7 @@ export default function SettingsScreen() {
           />
           <View style={[styles.divider, { backgroundColor: c.divider }]} />
           <RowLink
-            icon={<UserIcon size={16} color={c.accent} />}
+            icon={<ChartIcon size={16} color={c.accent} />}
             label="Тенденции в разходите"
             onPress={() => router.push('/trends')}
             c={c}
