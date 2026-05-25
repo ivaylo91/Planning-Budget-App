@@ -131,6 +131,36 @@ export async function updateBudget(listId: string, budgetEur: number): Promise<v
   if (error) throw error;
 }
 
+export async function updateItemQuantity(itemId: string, quantity: number): Promise<void> {
+  const { error } = await supabase
+    .from('list_items')
+    .update({ quantity })
+    .eq('id', itemId);
+
+  if (error) throw error;
+}
+
+export async function getShoppingLists(): Promise<ShoppingList[]> {
+  const { data, error } = await supabase
+    .from('shopping_lists')
+    .select(`*, items:list_items(*, store:stores(*))`)
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function setActiveList(listId: string): Promise<void> {
+  await supabase.from('shopping_lists').update({ is_active: false }).neq('id', listId);
+  const { error } = await supabase
+    .from('shopping_lists')
+    .update({ is_active: true })
+    .eq('id', listId);
+
+  if (error) throw error;
+}
+
 function enrichProduct(product: any): ProductWithPrices {
   const prices = product.prices ?? [];
   const activePrices = prices.map((p: any) => ({

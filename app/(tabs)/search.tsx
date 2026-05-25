@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,16 +24,26 @@ const CATEGORIES = [
   { id: '8', icon: '🍫', name: 'Сладки' },
 ];
 
+const STORE_FILTERS = [
+  { slug: null, name: 'Всички', color: '#b89978' },
+  { slug: 'billa', name: 'Billa', color: '#E30613' },
+  { slug: 'lidl', name: 'Lidl', color: '#0050AA' },
+  { slug: 'kaufland', name: 'Kaufland', color: '#E40521' },
+  { slug: 'metro', name: 'Metro', color: '#003882' },
+  { slug: 'fantastico', name: 'Fantastico', color: '#e57a4e' },
+];
+
 export default function SearchScreen() {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ProductWithPrices[]>([]);
+  const [allResults, setAllResults] = useState<ProductWithPrices[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
 
   const handleSearch = useCallback(async (q?: string) => {
     const searchQ = (q ?? query).trim();
@@ -42,7 +52,7 @@ export default function SearchScreen() {
     setSearched(true);
     try {
       const data = await searchProducts(searchQ);
-      setResults(data);
+      setAllResults(data);
     } catch {
       Alert.alert('Грешка', 'Не можа да се извърши търсенето.');
     } finally {
@@ -53,48 +63,83 @@ export default function SearchScreen() {
   const handleCategoryPress = (cat: typeof CATEGORIES[0]) => {
     setActiveCategory(cat.id);
     setQuery(cat.name);
+    setSelectedStore(null);
     handleSearch(cat.name);
   };
 
-  const renderProduct = ({ item }: { item: ProductWithPrices }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/product/${item.id}`)}
-      activeOpacity={0.75}
-    >
-      <View style={styles.cardTop}>
-        <View style={styles.cardTitles}>
-          <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-          {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
+  const handleStoreSelect = (slug: string | null) => {
+    setSelectedStore(slug);
+  };
+
+  const results = useMemo(() => {
+    if (!selectedStore) return allResults;
+    return allResults.filter((p) =>
+      p.prices.some((price) => price.store?.slug === selectedStore)
+    );
+  }, [allResults, selectedStore]);
+
+  const renderProduct = ({ item }: { item: ProductWithPrices }) => {
+    const displayPrices = selectedStore
+      ? item.prices.filter((p) => p.store?.slug === selectedStore)
+      : item.prices.slice(0, 5);
+
+    const cheapestInFilter = selectedStore
+      ? displayPrices[0]
+      : item.prices.find((p) => {
+          const eff = p.is_promotion && p.promo_price ? p.promo_price : p.price;
+          return eff === item.cheapest_price;
+        });
+
+    const cheapestEff = cheapestInFilter
+      ? (cheapestInFilter.is_promotion && cheapestInFilter.promo_price
+          ? cheapestInFilter.promo_price
+          : cheapestInFilter.price)
+      : item.cheapest_price;
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => router.push(`/product/${item.id}`)}
+        activeOpacity={0.75}
+      >
+        <View style={styles.cardTop}>
+          <View style={styles.cardTitles}>
+            <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+            {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
+          </View>
+          {cheapestEff != null && (
+            <View style={styles.cheapestPill}>
+              <Text style={styles.cheapestPrice}>{formatPrice(cheapestEff)}</Text>
+            </View>
+          )}
         </View>
-        {item.cheapest_price != null && (
-          <View style={styles.cheapestPill}>
-            <Text style={styles.cheapestPrice}>{formatPrice(item.cheapest_price)}</Text>
+
+        {!selectedStore && item.cheapest_store && (
+          <View style={styles.cheapestRow}>
+            <View style={[styles.storeDot, { backgroundColor: c.stores[item.cheapest_store.slug as keyof typeof c.stores] ?? c.accent }]} />
+            <Text style={styles.cheapestLabel}>Най-евтино: </Text>
+            <Text style={styles.cheapestStoreName}>{item.cheapest_store.name}</Text>
           </View>
         )}
-      </View>
-      {item.cheapest_store && (
-        <View style={styles.cheapestRow}>
-          <View style={[styles.storeDot, { backgroundColor: c.stores[item.cheapest_store.slug as keyof typeof c.stores] ?? c.accent }]} />
-          <Text style={styles.cheapestLabel}>Най-евтино: </Text>
-          <Text style={styles.cheapestStoreName}>{item.cheapest_store.name}</Text>
+
+        <View style={styles.priceRow}>
+          {displayPrices.map((p) => {
+            const eff = p.is_promotion && p.promo_price ? p.promo_price : p.price;
+            const isLowest = eff === cheapestEff;
+            const storeColor = c.stores[p.store?.slug as keyof typeof c.stores] ?? c.accent;
+            return (
+              <View key={p.store_id} style={[styles.priceChip, isLowest && { backgroundColor: c.accentSoft }]}>
+                <View style={[styles.storeColorDot, { backgroundColor: storeColor }]} />
+                <Text style={styles.priceChipStore}>{p.store?.name.slice(0, 4)}</Text>
+                <Text style={[styles.priceChipVal, isLowest && { color: c.accent }]}>{formatPrice(eff)}</Text>
+                {p.is_promotion && <Text style={styles.promoMark}>%</Text>}
+              </View>
+            );
+          })}
         </View>
-      )}
-      <View style={styles.priceRow}>
-        {item.prices.slice(0, 5).map((p) => {
-          const eff = p.is_promotion && p.promo_price ? p.promo_price : p.price;
-          const isLowest = eff === item.cheapest_price;
-          return (
-            <View key={p.store_id} style={[styles.priceChip, isLowest && { backgroundColor: c.accentSoft }]}>
-              <Text style={styles.priceChipStore}>{p.store?.name.slice(0, 3)}</Text>
-              <Text style={[styles.priceChipVal, isLowest && { color: c.accent }]}>{formatPrice(eff)}</Text>
-              {p.is_promotion && <Text style={styles.promoMark}>%</Text>}
-            </View>
-          );
-        })}
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const showCategoryGrid = !searched && !loading;
 
@@ -117,7 +162,13 @@ export default function SearchScreen() {
               autoCorrect={false}
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSearched(false); setActiveCategory(null); }}>
+              <TouchableOpacity onPress={() => {
+                setQuery('');
+                setAllResults([]);
+                setSearched(false);
+                setActiveCategory(null);
+                setSelectedStore(null);
+              }}>
                 <XIcon size={15} color={c.inkFaint} />
               </TouchableOpacity>
             )}
@@ -128,9 +179,30 @@ export default function SearchScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+
+        {/* Store filter chips — always visible */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storeFilterRow}>
+          {STORE_FILTERS.map((store) => {
+            const isActive = selectedStore === store.slug;
+            return (
+              <TouchableOpacity
+                key={store.slug ?? 'all'}
+                style={[styles.storeChip, isActive && { backgroundColor: store.color, borderColor: store.color }]}
+                onPress={() => handleStoreSelect(store.slug)}
+              >
+                {store.slug && (
+                  <View style={[styles.storeChipDot, { backgroundColor: isActive ? '#fff' : store.color }]} />
+                )}
+                <Text style={[styles.storeChipText, isActive && { color: '#fff', fontWeight: '700' }]}>
+                  {store.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      {/* Category grid (shown before search) */}
+      {/* Category grid */}
       {showCategoryGrid && (
         <FlatList
           data={CATEGORIES}
@@ -154,7 +226,6 @@ export default function SearchScreen() {
         />
       )}
 
-      {/* Loading */}
       {loading && (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={c.accent} />
@@ -162,16 +233,18 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {/* Empty result */}
       {!loading && searched && results.length === 0 && (
         <View style={styles.centered}>
           <Text style={styles.emptyEmoji}>🤷</Text>
           <Text style={styles.emptyTitle}>Няма резултати</Text>
-          <Text style={styles.emptyHint}>Провери изписването или търси по-общо</Text>
+          <Text style={styles.emptyHint}>
+            {selectedStore
+              ? `Няма продукти в ${STORE_FILTERS.find(s => s.slug === selectedStore)?.name}`
+              : 'Провери изписването или търси по-общо'}
+          </Text>
         </View>
       )}
 
-      {/* Results */}
       {!loading && results.length > 0 && (
         <FlatList
           data={results}
@@ -179,6 +252,16 @@ export default function SearchScreen() {
           renderItem={renderProduct}
           contentContainerStyle={[styles.list, { paddingBottom: FLOATING_TAB_HEIGHT + 16 }]}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            selectedStore ? (
+              <View style={[styles.filterResultHeader, { backgroundColor: c.accentSoft }]}>
+                <View style={[styles.filterResultDot, { backgroundColor: STORE_FILTERS.find(s => s.slug === selectedStore)?.color }]} />
+                <Text style={[styles.filterResultText, { color: c.accent }]}>
+                  {results.length} продукта в {STORE_FILTERS.find(s => s.slug === selectedStore)?.name}
+                </Text>
+              </View>
+            ) : null
+          }
         />
       )}
     </View>
@@ -188,7 +271,7 @@ export default function SearchScreen() {
 function makeStyles(c: AppColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.canvas },
-    searchHeader: { backgroundColor: c.surface, paddingHorizontal: 18, paddingBottom: 14, gap: 10 },
+    searchHeader: { backgroundColor: c.surface, paddingHorizontal: 18, paddingBottom: 8, gap: 10 },
     screenTitle: { fontSize: 22, fontWeight: '800', color: c.ink, letterSpacing: -0.5 },
     searchRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
     searchBox: {
@@ -201,6 +284,15 @@ function makeStyles(c: AppColors) {
     searchBtn: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
     searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
+    storeFilterRow: { paddingBottom: 10, gap: 8, paddingRight: 4 },
+    storeChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7,
+      backgroundColor: c.canvas, borderWidth: 1.5, borderColor: c.divider,
+    },
+    storeChipDot: { width: 8, height: 8, borderRadius: 4 },
+    storeChipText: { fontSize: 12, fontWeight: '600', color: c.inkSoft },
+
     catGrid: { padding: 16, gap: 4 },
     catSectionTitle: { fontSize: 13, fontWeight: '700', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
     catCard: {
@@ -211,6 +303,13 @@ function makeStyles(c: AppColors) {
     },
     catIcon: { fontSize: 24 },
     catName: { fontSize: 10, fontWeight: '600', color: c.inkSoft, textAlign: 'center' },
+
+    filterResultHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8,
+    },
+    filterResultDot: { width: 10, height: 10, borderRadius: 5 },
+    filterResultText: { fontSize: 13, fontWeight: '600' },
 
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 60 },
     loadingText: { marginTop: 12, color: c.inkSoft, fontSize: 14 },
@@ -240,6 +339,7 @@ function makeStyles(c: AppColors) {
       paddingHorizontal: 8, paddingVertical: 5,
       flexDirection: 'row', gap: 4, alignItems: 'center',
     },
+    storeColorDot: { width: 6, height: 6, borderRadius: 3 },
     priceChipStore: { fontSize: 10, color: c.inkSoft, fontWeight: '600' },
     priceChipVal: { fontSize: 12, fontWeight: '700', color: c.ink },
     promoMark: { fontSize: 9, fontWeight: '800', color: c.accent, backgroundColor: c.accentSoft, paddingHorizontal: 3, borderRadius: 4 },
