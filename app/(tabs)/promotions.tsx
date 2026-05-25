@@ -10,6 +10,7 @@ import { getPromotions } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import { TagIcon } from '../../components/Icons';
 import { StoreIcon } from '../../components/StoreIcon';
+import { ProductImage } from '../../components/ProductImage';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import type { ProductWithPrices, Price } from '../../types';
 
@@ -64,8 +65,17 @@ export default function PromotionsScreen() {
     return (
       <TouchableOpacity style={styles.card} onPress={() => router.push(`/product/${item.id}`)} activeOpacity={0.75}>
         <View style={styles.cardHeader}>
-          <Text style={styles.productName}>{item.name}</Text>
-          {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
+          <ProductImage
+            uri={item.image_url}
+            fallback={item.category?.icon ?? '📦'}
+            size={44}
+            borderRadius={10}
+            bgColor={c.surfaceAlt}
+          />
+          <View style={styles.cardTitles}>
+            <Text style={styles.productName}>{item.name}</Text>
+            {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
+          </View>
         </View>
         <View style={styles.promosWrap}>{promos.map(renderPromo)}</View>
       </TouchableOpacity>
@@ -131,7 +141,8 @@ function makeStyles(c: AppColors) {
       shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 }, elevation: 2,
     },
-    cardHeader: { marginBottom: 12 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+    cardTitles: { flex: 1 },
     productName: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
     brand: { fontSize: 12, color: c.inkFaint, marginTop: 2 },
 

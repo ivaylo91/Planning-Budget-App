@@ -11,6 +11,7 @@ import { searchProducts } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import { SearchIcon, XIcon, BarcodeIcon } from '../../components/Icons';
 import { StoreIcon } from '../../components/StoreIcon';
+import { ProductImage } from '../../components/ProductImage';
 import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
 import type { ProductWithPrices } from '../../types';
 
@@ -104,6 +105,13 @@ export default function SearchScreen() {
         activeOpacity={0.75}
       >
         <View style={styles.cardTop}>
+          <ProductImage
+            uri={item.image_url}
+            fallback={item.category?.icon ?? '📦'}
+            size={48}
+            borderRadius={12}
+            bgColor={c.surfaceAlt}
+          />
           <View style={styles.cardTitles}>
             <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
             {item.brand && <Text style={styles.brand}>{item.brand}</Text>}

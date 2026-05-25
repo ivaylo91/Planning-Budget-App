@@ -11,6 +11,7 @@ import { getProductById, getActiveShoppingList, addItemToList } from '../../lib/
 import { formatPrice } from '../../lib/currency';
 import { ChevronLeftIcon, SparkleIcon } from '../../components/Icons';
 import { StoreIcon } from '../../components/StoreIcon';
+import { ProductImage } from '../../components/ProductImage';
 import type { ProductWithPrices, Price } from '../../types';
 
 export default function ProductDetailScreen() {
@@ -92,18 +93,29 @@ export default function ProductDetailScreen() {
       >
         {/* Product header */}
         <View style={[styles.headerCard, { backgroundColor: c.surface }]}>
-          <Text style={styles.productName}>{product.name}</Text>
-          {product.brand && <Text style={styles.brand}>{product.brand}</Text>}
-          <View style={styles.metaRow}>
-            {product.category && (
-              <View style={[styles.metaChip, { backgroundColor: c.surfaceAlt }]}>
-                <Text style={[styles.metaChipText, { color: c.inkSoft }]}>
-                  {product.category.icon} {product.category.name}
-                </Text>
+          <View style={styles.headerTop}>
+            <ProductImage
+              uri={product.image_url}
+              fallback={product.category?.icon ?? '📦'}
+              size={80}
+              borderRadius={16}
+              bgColor={c.surfaceAlt}
+            />
+            <View style={styles.headerInfo}>
+              <Text style={styles.productName}>{product.name}</Text>
+              {product.brand && <Text style={styles.brand}>{product.brand}</Text>}
+              <View style={styles.metaRow}>
+                {product.category && (
+                  <View style={[styles.metaChip, { backgroundColor: c.surfaceAlt }]}>
+                    <Text style={[styles.metaChipText, { color: c.inkSoft }]}>
+                      {product.category.icon} {product.category.name}
+                    </Text>
+                  </View>
+                )}
+                <View style={[styles.metaChip, { backgroundColor: c.surfaceAlt }]}>
+                  <Text style={[styles.metaChipText, { color: c.inkSoft }]}>📦 {product.unit}</Text>
+                </View>
               </View>
-            )}
-            <View style={[styles.metaChip, { backgroundColor: c.surfaceAlt }]}>
-              <Text style={[styles.metaChipText, { color: c.inkSoft }]}>📦 {product.unit}</Text>
             </View>
           </View>
         </View>
@@ -225,8 +237,10 @@ function makeStyles(c: AppColors) {
       shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 }, elevation: 2,
     },
-    productName: { fontSize: 22, fontWeight: '800', color: c.ink, letterSpacing: -0.5, marginBottom: 4 },
-    brand: { fontSize: 13, color: c.inkFaint, marginBottom: 12 },
+    headerTop: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
+    headerInfo: { flex: 1 },
+    productName: { fontSize: 18, fontWeight: '800', color: c.ink, letterSpacing: -0.4, marginBottom: 3 },
+    brand: { fontSize: 12, color: c.inkFaint, marginBottom: 10 },
     metaRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     metaChip: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
     metaChipText: { fontSize: 12, fontWeight: '600' },
