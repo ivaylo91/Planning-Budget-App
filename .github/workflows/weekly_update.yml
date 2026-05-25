@@ -34,4 +34,6 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
-          echo "::warning::Scraper failed — store HTML may have changed. Check billa.py / lidl.py selectors."
+          echo "::warning::Scraper failed — one or more stores returned 0 products."
+          echo "::warning::Check CSS selectors in: billa.py, lidl.py, kaufland.py, metro.py, fantastico.py"
+          echo "::warning::Tip: set SCRAPE_STORES=billa to test a single store, SCRAPE_DRY_RUN=1 to skip DB writes."
