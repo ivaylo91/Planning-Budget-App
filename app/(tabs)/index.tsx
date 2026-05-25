@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, RefreshControl, Alert,
+  StyleSheet, RefreshControl,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,19 +28,14 @@ export default function HomeScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [list, setList] = useState<ShoppingList | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const initials = user?.email?.[0].toUpperCase() ?? '?';
   const displayName = user?.email?.split('@')[0] ?? '';
 
-  const handleAvatarPress = () => {
-    Alert.alert('Профил', user?.email ?? '', [
-      { text: 'Отказ', style: 'cancel' },
-      { text: 'Изход', style: 'destructive', onPress: signOut },
-    ]);
-  };
+  const handleAvatarPress = () => router.push('/settings');
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -83,7 +78,7 @@ export default function HomeScreen() {
               <Text style={styles.subGreeting} numberOfLines={1}>{displayName}</Text>
             </View>
           </View>
-          <TouchableOpacity style={[styles.bellBtn, { backgroundColor: c.surface }]} onPress={() => router.push('/history')}>
+          <TouchableOpacity style={[styles.bellBtn, { backgroundColor: c.surface }]} onPress={() => router.push('/settings')}>
             <BellIcon size={19} color={c.inkSoft} />
           </TouchableOpacity>
         </View>
