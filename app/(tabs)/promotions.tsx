@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/colors';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useColors, AppColors } from '../../constants/colors';
 import { getPromotions } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import type { ProductWithPrices, Price } from '../../types';
 
 export default function PromotionsScreen() {
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const [products, setProducts] = useState<ProductWithPrices[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async (isRefresh = false) => {
+  const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
       const data = await getPromotions();
@@ -24,12 +26,12 @@ export default function PromotionsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const renderPromo = (p: Price) => {
-    const storeColor = Colors.stores[p.store?.slug as keyof typeof Colors.stores] ?? Colors.accent;
+    const storeColor = c.stores[p.store?.slug as keyof typeof c.stores] ?? c.accent;
     const pct = p.promo_price ? Math.round(((p.price - p.promo_price) / p.price) * 100) : 0;
     return (
       <View key={p.store_id} style={styles.promoTag}>
@@ -65,7 +67,7 @@ export default function PromotionsScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.accent} />
+        <ActivityIndicator size="large" color={c.accent} />
         <Text style={styles.loadingText}>Зареждам промоции...</Text>
       </View>
     );
@@ -79,7 +81,7 @@ export default function PromotionsScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={c.accent} />}
         ListHeaderComponent={
           <View style={styles.listHeader}>
             <Text style={styles.listHeaderText}>Активни намаления тази седмица</Text>
@@ -96,34 +98,36 @@ export default function PromotionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.canvas },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  loadingText: { marginTop: 12, color: Colors.inkSoft },
-  emptyEmoji: { fontSize: 44, marginBottom: 10 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: Colors.ink },
-  listHeader: { paddingHorizontal: 2, paddingBottom: 6, paddingTop: 4 },
-  listHeaderText: { fontSize: 13, color: Colors.inkSoft, fontWeight: '500' },
-  list: { padding: 14, paddingBottom: 24, gap: 10 },
-  card: {
-    backgroundColor: Colors.surface, borderRadius: 18, padding: 16,
-    shadowColor: '#2b1d12', shadowOpacity: 0.06, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 2,
-  },
-  productName: { fontSize: 15, fontWeight: '700', color: Colors.ink, letterSpacing: -0.2 },
-  brand: { fontSize: 12, color: Colors.inkFaint, marginTop: 2, marginBottom: 4 },
-  promoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  promoTag: {
-    borderRadius: 12, overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(43,29,18,0.08)',
-    minWidth: 100,
-  },
-  promoTagStore: { paddingHorizontal: 8, paddingVertical: 4 },
-  promoTagStoreName: { color: '#fff', fontWeight: '700', fontSize: 11 },
-  promoTagBody: { padding: 8, alignItems: 'flex-start', gap: 2 },
-  promoOld: { fontSize: 11, color: Colors.inkFaint, textDecorationLine: 'line-through' },
-  promoNew: { fontSize: 16, fontWeight: '800' },
-  promoPct: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
-  promoPctText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  promoEnd: { fontSize: 9, color: Colors.inkFaint, paddingHorizontal: 8, paddingBottom: 6 },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.canvas },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+    loadingText: { marginTop: 12, color: c.inkSoft },
+    emptyEmoji: { fontSize: 44, marginBottom: 10 },
+    emptyTitle: { fontSize: 16, fontWeight: '700', color: c.ink },
+    listHeader: { paddingHorizontal: 2, paddingBottom: 6, paddingTop: 4 },
+    listHeaderText: { fontSize: 13, color: c.inkSoft, fontWeight: '500' },
+    list: { padding: 14, paddingBottom: 24, gap: 10 },
+    card: {
+      backgroundColor: c.surface, borderRadius: 18, padding: 16,
+      shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 }, elevation: 2,
+    },
+    productName: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
+    brand: { fontSize: 12, color: c.inkFaint, marginTop: 2, marginBottom: 4 },
+    promoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+    promoTag: {
+      borderRadius: 12, overflow: 'hidden',
+      borderWidth: 1, borderColor: c.divider,
+      minWidth: 100,
+    },
+    promoTagStore: { paddingHorizontal: 8, paddingVertical: 4 },
+    promoTagStoreName: { color: '#fff', fontWeight: '700', fontSize: 11 },
+    promoTagBody: { padding: 8, alignItems: 'flex-start', gap: 2 },
+    promoOld: { fontSize: 11, color: c.inkFaint, textDecorationLine: 'line-through' },
+    promoNew: { fontSize: 16, fontWeight: '800' },
+    promoPct: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
+    promoPctText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+    promoEnd: { fontSize: 9, color: c.inkFaint, paddingHorizontal: 8, paddingBottom: 6 },
+  });
+}

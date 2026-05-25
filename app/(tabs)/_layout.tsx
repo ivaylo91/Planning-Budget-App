@@ -1,24 +1,25 @@
 import { Tabs } from 'expo-router';
 import { Text, View, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useColors } from '../../constants/colors';
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+function TabIcon({ emoji, focused, accentSoft }: { emoji: string; focused: boolean; accentSoft: string }) {
   return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+    <View style={[styles.iconWrap, focused && { backgroundColor: accentSoft }]}>
       <Text style={{ fontSize: 18 }}>{emoji}</Text>
     </View>
   );
 }
 
 export default function TabsLayout() {
+  const c = useColors();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: Colors.inkFaint,
+        tabBarActiveTintColor: c.accent,
+        tabBarInactiveTintColor: c.inkFaint,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: 'rgba(43,29,18,0.08)',
+          backgroundColor: c.surface,
+          borderTopColor: c.divider,
           borderTopWidth: 1,
           paddingBottom: 6,
           paddingTop: 6,
@@ -28,14 +29,14 @@ export default function TabsLayout() {
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
         headerStyle: {
-          backgroundColor: Colors.surface,
+          backgroundColor: c.surface,
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,
-          borderBottomColor: 'rgba(43,29,18,0.08)',
+          borderBottomColor: c.divider,
         } as any,
-        headerTintColor: Colors.ink,
-        headerTitleStyle: { fontWeight: '700', fontSize: 17, color: Colors.ink },
+        headerTintColor: c.ink,
+        headerTitleStyle: { fontWeight: '700', fontSize: 17, color: c.ink },
       }}
     >
       <Tabs.Screen
@@ -43,7 +44,7 @@ export default function TabsLayout() {
         options={{
           title: 'Търсене',
           headerTitle: 'Пазарувай умно',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} accentSoft={c.accentSoft} />,
         }}
       />
       <Tabs.Screen
@@ -51,7 +52,7 @@ export default function TabsLayout() {
         options={{
           title: 'Промоции',
           headerTitle: 'Промоции',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏷️" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏷️" focused={focused} accentSoft={c.accentSoft} />,
         }}
       />
       <Tabs.Screen
@@ -59,7 +60,7 @@ export default function TabsLayout() {
         options={{
           title: 'Списък',
           headerTitle: 'Списък',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} accentSoft={c.accentSoft} />,
         }}
       />
       <Tabs.Screen
@@ -67,7 +68,7 @@ export default function TabsLayout() {
         options={{
           title: 'Бюджет',
           headerTitle: 'Бюджет',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💰" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="💰" focused={focused} accentSoft={c.accentSoft} />,
         }}
       />
     </Tabs>
@@ -75,9 +76,5 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  iconWrap: {
-    width: 36, height: 28, alignItems: 'center',
-    justifyContent: 'center', borderRadius: 14,
-  },
-  iconWrapActive: { backgroundColor: Colors.accentSoft },
+  iconWrap: { width: 36, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14 },
 });

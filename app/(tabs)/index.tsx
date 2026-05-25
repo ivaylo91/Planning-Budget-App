@@ -1,15 +1,17 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/colors';
+import { useColors, AppColors } from '../../constants/colors';
 import { searchProducts } from '../../lib/queries';
 import { formatPrice } from '../../lib/currency';
 import type { ProductWithPrices } from '../../types';
 
 export default function SearchScreen() {
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProductWithPrices[]>([]);
@@ -53,7 +55,7 @@ export default function SearchScreen() {
 
       {item.cheapest_store && (
         <View style={styles.cheapestRow}>
-          <View style={[styles.storeDot, { backgroundColor: Colors.stores[item.cheapest_store.slug as keyof typeof Colors.stores] ?? Colors.accent }]} />
+          <View style={[styles.storeDot, { backgroundColor: c.stores[item.cheapest_store.slug as keyof typeof c.stores] ?? c.accent }]} />
           <Text style={styles.cheapestLabel}>Най-евтино в </Text>
           <Text style={styles.cheapestStoreName}>{item.cheapest_store.name}</Text>
         </View>
@@ -66,8 +68,8 @@ export default function SearchScreen() {
           return (
             <View key={p.store_id} style={[styles.priceChip, isLowest && styles.priceChipBest]}>
               <Text style={styles.priceChipStore}>{p.store?.name.slice(0, 3)}</Text>
-              <Text style={[styles.priceChipVal, isLowest && styles.priceChipValBest]}>{formatPrice(eff)}</Text>
-              {p.is_promotion && <Text style={styles.promoMark}>%</Text>}
+              <Text style={[styles.priceChipVal, isLowest && { color: c.accent }]}>{formatPrice(eff)}</Text>
+              {p.is_promotion && <Text style={[styles.promoMark, { color: c.accent }]}>%</Text>}
             </View>
           );
         })}
@@ -83,7 +85,7 @@ export default function SearchScreen() {
           <TextInput
             style={styles.input}
             placeholder="Мляко, хляб, домати..."
-            placeholderTextColor={Colors.inkFaint}
+            placeholderTextColor={c.inkFaint}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
@@ -103,7 +105,7 @@ export default function SearchScreen() {
 
       {loading && (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={c.accent} />
           <Text style={styles.loadingText}>Търся...</Text>
         </View>
       )}
@@ -137,60 +139,61 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.canvas },
-  searchWrap: {
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(43,29,18,0.07)',
-    flexDirection: 'row', gap: 10, alignItems: 'center',
-  },
-  searchBox: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.canvas, borderRadius: 14,
-    paddingHorizontal: 12, paddingVertical: 10, gap: 8,
-  },
-  searchIcon: { fontSize: 15 },
-  input: { flex: 1, fontSize: 15, color: Colors.ink, fontWeight: '500' },
-  clearBtn: { fontSize: 13, color: Colors.inkFaint, paddingHorizontal: 4 },
-  searchBtn: {
-    backgroundColor: Colors.accent, borderRadius: 14,
-    paddingHorizontal: 16, paddingVertical: 12,
-  },
-  searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 60 },
-  loadingText: { marginTop: 12, color: Colors.inkSoft, fontSize: 14 },
-  emptyEmoji: { fontSize: 44, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.ink, marginBottom: 6 },
-  emptyHint: { fontSize: 14, color: Colors.inkSoft, textAlign: 'center', lineHeight: 20 },
-  list: { padding: 14, paddingBottom: 24, gap: 10 },
-  card: {
-    backgroundColor: Colors.surface, borderRadius: 18, padding: 16,
-    shadowColor: '#2b1d12', shadowOpacity: 0.06, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 2,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 10 },
-  cardTitles: { flex: 1 },
-  productName: { fontSize: 15, fontWeight: '700', color: Colors.ink, letterSpacing: -0.2 },
-  brand: { fontSize: 12, color: Colors.inkFaint, marginTop: 2 },
-  cheapestPill: { backgroundColor: Colors.accentSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  cheapestPrice: { fontSize: 14, fontWeight: '800', color: Colors.accent },
-  cheapestRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 },
-  storeDot: { width: 8, height: 8, borderRadius: 4 },
-  cheapestLabel: { fontSize: 12, color: Colors.inkSoft },
-  cheapestStoreName: { fontSize: 12, fontWeight: '700', color: Colors.ink },
-  priceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  priceChip: {
-    backgroundColor: Colors.surfaceAlt, borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center',
-    minWidth: 60, flexDirection: 'row', gap: 4,
-  },
-  priceChipBest: { backgroundColor: Colors.accentSoft },
-  priceChipStore: { fontSize: 10, color: Colors.inkSoft, fontWeight: '600' },
-  priceChipVal: { fontSize: 12, fontWeight: '700', color: Colors.ink },
-  priceChipValBest: { color: Colors.accent },
-  promoMark: {
-    fontSize: 9, color: Colors.accent, fontWeight: '800',
-    backgroundColor: 'rgba(198,78,46,0.12)', paddingHorizontal: 3, borderRadius: 4,
-  },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.canvas },
+    searchWrap: {
+      paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12,
+      backgroundColor: c.surface,
+      borderBottomWidth: 1, borderBottomColor: c.divider,
+      flexDirection: 'row', gap: 10, alignItems: 'center',
+    },
+    searchBox: {
+      flex: 1, flexDirection: 'row', alignItems: 'center',
+      backgroundColor: c.canvas, borderRadius: 14,
+      paddingHorizontal: 12, paddingVertical: 10, gap: 8,
+    },
+    searchIcon: { fontSize: 15 },
+    input: { flex: 1, fontSize: 15, color: c.ink, fontWeight: '500' },
+    clearBtn: { fontSize: 13, color: c.inkFaint, paddingHorizontal: 4 },
+    searchBtn: {
+      backgroundColor: c.accent, borderRadius: 14,
+      paddingHorizontal: 16, paddingVertical: 12,
+    },
+    searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 60 },
+    loadingText: { marginTop: 12, color: c.inkSoft, fontSize: 14 },
+    emptyEmoji: { fontSize: 44, marginBottom: 12 },
+    emptyTitle: { fontSize: 18, fontWeight: '700', color: c.ink, marginBottom: 6 },
+    emptyHint: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 20 },
+    list: { padding: 14, paddingBottom: 24, gap: 10 },
+    card: {
+      backgroundColor: c.surface, borderRadius: 18, padding: 16,
+      shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 }, elevation: 2,
+    },
+    cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 10 },
+    cardTitles: { flex: 1 },
+    productName: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
+    brand: { fontSize: 12, color: c.inkFaint, marginTop: 2 },
+    cheapestPill: { backgroundColor: c.accentSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+    cheapestPrice: { fontSize: 14, fontWeight: '800', color: c.accent },
+    cheapestRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 },
+    storeDot: { width: 8, height: 8, borderRadius: 4 },
+    cheapestLabel: { fontSize: 12, color: c.inkSoft },
+    cheapestStoreName: { fontSize: 12, fontWeight: '700', color: c.ink },
+    priceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    priceChip: {
+      backgroundColor: c.surfaceAlt, borderRadius: 10,
+      paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center',
+      minWidth: 60, flexDirection: 'row', gap: 4,
+    },
+    priceChipBest: { backgroundColor: c.accentSoft },
+    priceChipStore: { fontSize: 10, color: c.inkSoft, fontWeight: '600' },
+    priceChipVal: { fontSize: 12, fontWeight: '700', color: c.ink },
+    promoMark: {
+      fontSize: 9, fontWeight: '800',
+      backgroundColor: c.accentSoft, paddingHorizontal: 3, borderRadius: 4,
+    },
+  });
+}
