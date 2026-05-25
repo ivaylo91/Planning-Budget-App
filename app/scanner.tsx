@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Vibration, ActivityIndicator, Animated, Easing,
+  ActivityIndicator, Animated, Easing,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,17 +51,19 @@ export default function ScannerScreen() {
     if (cooldownRef.current || status === 'scanning') return;
     cooldownRef.current = true;
 
-    Vibration.vibrate(80);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setStatus('scanning');
     setStatusText('Търся продукта...');
 
     try {
       const product = await getProductByBarcode(data);
       if (product) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setStatus('found');
         setStatusText(`Намерен: ${product.name}`);
         setTimeout(() => router.replace(`/product/${product.id}`), 500);
       } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setStatus('notfound');
         setStatusText('Продуктът не е намерен в базата');
         setTimeout(() => {
@@ -70,11 +73,12 @@ export default function ScannerScreen() {
         }, SCAN_COOLDOWN);
       }
     } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setStatus('notfound');
       setStatusText('Грешка при търсенето');
       setTimeout(() => {
         setStatus('idle');
-        setStatusText('Навочи камерата към баркод');
+        setStatusText('Насочи камерата към баркод');
         cooldownRef.current = false;
       }, SCAN_COOLDOWN);
     }

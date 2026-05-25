@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -36,6 +37,7 @@ export default function ProductDetailScreen() {
 
   const handleToggleWatch = async () => {
     if (watchLoading || !id) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setWatchLoading(true);
     const next = !watched;
     setWatched(next);

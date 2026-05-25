@@ -37,7 +37,7 @@ export default function OnboardingScreen() {
   const handleNext = async () => {
     if (isLast) {
       await AsyncStorage.setItem('onboarding_done', '1');
-      router.replace('/(tabs)');
+      router.replace('/auth');
     } else {
       setStep((s) => s + 1);
     }
@@ -45,7 +45,7 @@ export default function OnboardingScreen() {
 
   const handleSkip = async () => {
     await AsyncStorage.setItem('onboarding_done', '1');
-    router.replace('/(tabs)');
+    router.replace('/auth');
   };
 
   return (

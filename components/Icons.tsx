@@ -22,6 +22,7 @@ import {
   faBarcode,
   faBolt,
   faHeart,
+  faArrowUpFromBracket,
 } from '@fortawesome/free-solid-svg-icons';
 
 export interface IconProps {
@@ -50,3 +51,4 @@ export const XIcon               = ({ size = 24, color = '#3a2415' }: IconProps)
 export const BarcodeIcon         = ({ size = 24, color = '#3a2415' }: IconProps) => <FontAwesomeIcon icon={faBarcode}               size={size} color={color} />;
 export const BoltIcon            = ({ size = 24, color = '#3a2415' }: IconProps) => <FontAwesomeIcon icon={faBolt}                  size={size} color={color} />;
 export const HeartIcon           = ({ size = 24, color = '#3a2415' }: IconProps) => <FontAwesomeIcon icon={faHeart}                 size={size} color={color} />;
+export const ShareIcon           = ({ size = 24, color = '#3a2415' }: IconProps) => <FontAwesomeIcon icon={faArrowUpFromBracket}    size={size} color={color} />;

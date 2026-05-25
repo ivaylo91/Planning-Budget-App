@@ -7,6 +7,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors, AppColors } from '../../constants/colors';
 import { getPromotions } from '../../lib/queries';
+import { getCached, setCached } from '../../lib/cache';
 import { formatPrice } from '../../lib/currency';
 import { TagIcon } from '../../components/Icons';
 import { StoreIcon } from '../../components/StoreIcon';
@@ -26,8 +27,17 @@ export default function PromotionsScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
+      if (!isRefresh) {
+        const cached = await getCached<ProductWithPrices[]>('promotions');
+        if (cached) {
+          setProducts(cached);
+          setLoading(false);
+          return;
+        }
+      }
       const data = await getPromotions();
       setProducts(data);
+      setCached('promotions', data);
     } finally {
       setLoading(false);
       setRefreshing(false);

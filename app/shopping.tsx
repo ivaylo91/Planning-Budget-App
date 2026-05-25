@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, SectionList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Share,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +12,7 @@ import { getActiveShoppingList, toggleItemChecked } from '../lib/queries';
 import { notifyOverBudget } from '../lib/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formatPrice, eurToBgn } from '../lib/currency';
-import { ChevronLeftIcon, CheckIcon } from '../components/Icons';
+import { ChevronLeftIcon, CheckIcon, ShareIcon } from '../components/Icons';
 import { StoreIcon } from '../components/StoreIcon';
 import type { ListItem, ShoppingList } from '../types';
 
@@ -29,8 +30,19 @@ export default function ShoppingScreen() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleShare = useCallback(async () => {
+    if (!list) return;
+    const items = list.items ?? [];
+    const lines = items.map((i) => `${i.is_checked ? '✓' : '○'} ${i.product_name}${i.price_at_add ? ` — ${formatPrice(i.price_at_add * i.quantity)}` : ''}`);
+    const checked = items.filter((i) => i.is_checked);
+    const total = checked.reduce((s, i) => s + (i.price_at_add ?? 0) * i.quantity, 0);
+    const text = `${list.name}\n\n${lines.join('\n')}\n\nОбщо: ${formatPrice(total)}`;
+    await Share.share({ message: text });
+  }, [list]);
+
   const handleToggle = useCallback(async (item: ListItem) => {
     const newChecked = !item.is_checked;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Optimistic update
     setList((prev) => {
       if (!prev) return prev;
@@ -119,7 +131,9 @@ export default function ShoppingScreen() {
             {list?.name ?? 'Списък'} · {checked.length}/{items.length} продукта
           </Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.backBtn} onPress={handleShare}>
+          <ShareIcon size={16} color="#fff" />
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* Cart summary bar */}
