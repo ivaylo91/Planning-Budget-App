@@ -1,42 +1,42 @@
 import { useColorScheme } from 'react-native';
 
-const light = {
-  canvas: '#f6efe3',
-  surface: '#fffaf0',
-  surfaceAlt: '#f0e6d2',
-  ink: '#2b1d12',
-  inkSoft: '#6b5a48',
-  inkFaint: '#a89880',
-  accent: '#c64e2e',
-  accentSoft: '#f8d9cd',
-  good: '#5f7d4b',
-  warn: '#c98a2b',
-  bad: '#a8412a',
-  divider: 'rgba(43,29,18,0.08)',
-  shadow: '#2b1d12',
+const pastel = {
+  canvas: '#fde9d6',
+  surface: '#fff7ed',
+  surfaceAlt: '#fcdcc0',
+  ink: '#3a2415',
+  inkSoft: '#7a5c45',
+  inkFaint: '#b89978',
+  accent: '#e57a4e',
+  accentSoft: '#ffd6b8',
+  good: '#7a9b66',
+  warn: '#d99a4a',
+  bad: '#c4583a',
+  divider: 'rgba(58,36,21,0.07)',
+  shadow: '#3a2415',
   statusBar: 'dark' as const,
   stores: {
     billa: '#E30613',
     lidl: '#0050AA',
     kaufland: '#E40521',
     metro: '#003882',
-    fantastico: '#c64e2e',
+    fantastico: '#e57a4e',
   },
 };
 
-const dark = {
-  canvas: '#1c1510',
-  surface: '#262018',
-  surfaceAlt: '#302820',
-  ink: '#f2e8d8',
-  inkSoft: '#b8a08a',
-  inkFaint: '#6a5848',
-  accent: '#d4603c',
-  accentSoft: 'rgba(212,96,60,0.18)',
-  good: '#6e9456',
-  warn: '#d49a3a',
-  bad: '#c0503a',
-  divider: 'rgba(242,232,216,0.08)',
+const pastelDark = {
+  canvas: '#1e1208',
+  surface: '#2a1c10',
+  surfaceAlt: '#36261a',
+  ink: '#f5e8d8',
+  inkSoft: '#c0a080',
+  inkFaint: '#7a5c45',
+  accent: '#e57a4e',
+  accentSoft: 'rgba(229,122,78,0.20)',
+  good: '#7a9b66',
+  warn: '#d99a4a',
+  bad: '#c4583a',
+  divider: 'rgba(245,232,216,0.07)',
   shadow: '#000000',
   statusBar: 'light' as const,
   stores: {
@@ -44,15 +44,21 @@ const dark = {
     lidl: '#0050AA',
     kaufland: '#E40521',
     metro: '#003882',
-    fantastico: '#d4603c',
+    fantastico: '#e57a4e',
   },
 };
 
-export type AppColors = typeof light;
+export type AppColors = typeof pastel;
 
 export function useColors(): AppColors {
-  return useColorScheme() === 'dark' ? dark : light;
+  return useColorScheme() === 'dark' ? pastelDark : pastel;
 }
 
-// Static light palette kept for non-hook contexts (StyleSheet defaults, etc.)
-export const Colors = light;
+export const Colors = pastel;
+
+export const Gradients = {
+  accent: ['#e57a4e', '#ffba8b'] as const,
+  good: ['#7a9b66', '#a5c490'] as const,
+  canvas: ['#fde9d6', '#fff7ed'] as const,
+  bad: ['#c4583a', '#e07055'] as const,
+};

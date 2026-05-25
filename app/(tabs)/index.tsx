@@ -1,199 +1,271 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, TextInput, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useColors, AppColors } from '../../constants/colors';
-import { searchProducts } from '../../lib/queries';
-import { formatPrice } from '../../lib/currency';
-import type { ProductWithPrices } from '../../types';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColors, AppColors, Gradients } from '../../constants/colors';
+import { getActiveShoppingList } from '../../lib/queries';
+import { formatPrice, eurToBgn, formatEur } from '../../lib/currency';
+import { DonutChart } from '../../components/DonutChart';
+import { SearchIcon, TagIcon, ChevronRightIcon, SparkleIcon, BellIcon, SwapIcon } from '../../components/Icons';
+import { FLOATING_TAB_HEIGHT } from '../../components/FloatingTabBar';
+import type { ShoppingList } from '../../types';
 
-export default function SearchScreen() {
+export default function HomeScreen() {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ProductWithPrices[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const insets = useSafeAreaInsets();
+  const [list, setList] = useState<ShoppingList | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleSearch = useCallback(async () => {
-    if (query.trim().length < 2) {
-      Alert.alert('Търсене', 'Въведи поне 2 символа');
-      return;
-    }
-    setLoading(true);
-    setSearched(true);
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     try {
-      const data = await searchProducts(query.trim());
-      setResults(data);
-    } catch {
-      Alert.alert('Грешка', 'Не можа да се извърши търсенето.');
+      const data = await getActiveShoppingList();
+      setList(data);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  }, [query]);
+  }, []);
 
-  const renderProduct = ({ item }: { item: ProductWithPrices }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/product/${item.id}`)}
-      activeOpacity={0.75}
-    >
-      <View style={styles.cardTop}>
-        <View style={styles.cardTitles}>
-          <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-          {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
-        </View>
-        {item.cheapest_price != null && (
-          <View style={styles.cheapestPill}>
-            <Text style={styles.cheapestPrice}>{formatPrice(item.cheapest_price)}</Text>
-          </View>
-        )}
-      </View>
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-      {item.cheapest_store && (
-        <View style={styles.cheapestRow}>
-          <View style={[styles.storeDot, { backgroundColor: c.stores[item.cheapest_store.slug as keyof typeof c.stores] ?? c.accent }]} />
-          <Text style={styles.cheapestLabel}>Най-евтино в </Text>
-          <Text style={styles.cheapestStoreName}>{item.cheapest_store.name}</Text>
-        </View>
-      )}
-
-      <View style={styles.priceRow}>
-        {item.prices.slice(0, 5).map((p) => {
-          const eff = p.is_promotion && p.promo_price ? p.promo_price : p.price;
-          const isLowest = eff === item.cheapest_price;
-          return (
-            <View key={p.store_id} style={[styles.priceChip, isLowest && styles.priceChipBest]}>
-              <Text style={styles.priceChipStore}>{p.store?.name.slice(0, 3)}</Text>
-              <Text style={[styles.priceChipVal, isLowest && { color: c.accent }]}>{formatPrice(eff)}</Text>
-              {p.is_promotion && <Text style={[styles.promoMark, { color: c.accent }]}>%</Text>}
-            </View>
-          );
-        })}
-      </View>
-    </TouchableOpacity>
-  );
+  const budgetBgn = list ? eurToBgn(list.budget_eur) : 0;
+  const totalSpent = (list?.items ?? []).reduce((s, i) => s + (i.price_at_add ?? 0) * i.quantity, 0);
+  const progress = budgetBgn > 0 ? Math.min(totalSpent / budgetBgn, 1) : 0;
+  const isOver = totalSpent > budgetBgn;
+  const barColor = isOver ? c.bad : progress > 0.8 ? c.warn : c.good;
+  const remaining = budgetBgn - totalSpent;
+  const unchecked = (list?.items ?? []).filter((i) => !i.is_checked).slice(0, 3);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchWrap}>
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Мляко, хляб, домати..."
-            placeholderTextColor={c.inkFaint}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-            autoCorrect={false}
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: FLOATING_TAB_HEIGHT + 24 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={c.accent} />}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <LinearGradient colors={Gradients.accent} style={styles.avatar}>
+              <Text style={styles.avatarText}>ПУ</Text>
+            </LinearGradient>
+            <View>
+              <Text style={styles.greeting}>Добро утро! 👋</Text>
+              <Text style={styles.subGreeting}>Пазарувай умно днес</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={[styles.bellBtn, { backgroundColor: c.surface }]}>
+            <BellIcon size={19} color={c.inkSoft} />
+            <View style={styles.bellDot} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Budget card */}
+        <View style={[styles.budgetCard, { backgroundColor: c.surface }]}>
+          <View style={styles.budgetRow}>
+            <DonutChart
+              progress={progress}
+              size={96}
+              color={barColor}
+              trackColor={c.surfaceAlt}
+              label={`${Math.round(progress * 100)}%`}
+              sublabel="от бюджета"
+              labelColor={barColor}
+              sublabelColor={c.inkFaint}
+            />
+            <View style={styles.budgetInfo}>
+              <Text style={styles.budgetListName} numberOfLines={1}>
+                {list?.name ?? 'Без активен списък'}
+              </Text>
+              <Text style={styles.budgetAmount}>{formatEur(list?.budget_eur ?? 0)}</Text>
+              <Text style={styles.budgetBgn}>{formatPrice(budgetBgn)}</Text>
+              {list ? (
+                <View style={[styles.remainingBadge, { backgroundColor: isOver ? '#ffdad3' : '#d8edcc' }]}>
+                  <Text style={[styles.remainingText, { color: isOver ? c.bad : c.good }]}>
+                    {isOver
+                      ? `+${formatPrice(Math.abs(remaining))} над`
+                      : `${formatPrice(remaining)} остава`}
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity onPress={() => router.push('/(tabs)/list')}>
+                  <Text style={styles.createListHint}>Създай списък →</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Quick actions */}
+        <View style={styles.actionsRow}>
+          <QuickAction
+            icon={<SearchIcon size={18} color={c.accent} />}
+            label="Търси"
+            onPress={() => router.push('/(tabs)/search')}
+            c={c}
           />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSearched(false); }}>
-              <Text style={styles.clearBtn}>✕</Text>
-            </TouchableOpacity>
-          )}
+          <QuickAction
+            icon={<TagIcon size={18} color={c.accent} />}
+            label="Промоции"
+            onPress={() => router.push('/(tabs)/promotions')}
+            c={c}
+          />
+          <QuickAction
+            icon={<SwapIcon size={18} color={c.accent} />}
+            label="Бюджет"
+            onPress={() => router.push('/(tabs)/budget')}
+            c={c}
+          />
         </View>
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-          <Text style={styles.searchBtnText}>Търси</Text>
-        </TouchableOpacity>
-      </View>
 
-      {loading && (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={c.accent} />
-          <Text style={styles.loadingText}>Търся...</Text>
-        </View>
-      )}
+        {/* List preview */}
+        {list && unchecked.length > 0 && (
+          <TouchableOpacity
+            style={[styles.listCard, { backgroundColor: c.surface }]}
+            onPress={() => router.push('/(tabs)/list')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.listCardHeader}>
+              <Text style={styles.listCardTitle}>Следващи покупки</Text>
+              <View style={[styles.listCardChip, { backgroundColor: c.accentSoft }]}>
+                <Text style={[styles.listCardChipText, { color: c.accent }]}>
+                  {(list.items ?? []).filter((i) => !i.is_checked).length} продукта
+                </Text>
+              </View>
+            </View>
+            {unchecked.map((item) => (
+              <View key={item.id} style={styles.listItem}>
+                <View style={[styles.listItemDot, { backgroundColor: c.accentSoft }]} />
+                <Text style={[styles.listItemName, { color: c.ink }]} numberOfLines={1}>
+                  {item.product_name}
+                </Text>
+                {item.price_at_add ? (
+                  <Text style={[styles.listItemPrice, { color: c.accent }]}>
+                    {formatPrice(item.price_at_add * item.quantity)}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+            <View style={[styles.listCardFooter, { borderTopColor: c.divider }]}>
+              <Text style={[styles.listCardSeeAll, { color: c.accent }]}>Виж всички</Text>
+              <ChevronRightIcon size={13} color={c.accent} />
+            </View>
+          </TouchableOpacity>
+        )}
 
-      {!loading && searched && results.length === 0 && (
-        <View style={styles.centered}>
-          <Text style={styles.emptyEmoji}>🤷</Text>
-          <Text style={styles.emptyTitle}>Няма резултати</Text>
-          <Text style={styles.emptyHint}>Провери изписването или търси по-общо</Text>
-        </View>
-      )}
-
-      {!loading && !searched && (
-        <View style={styles.centered}>
-          <Text style={styles.emptyEmoji}>🛒</Text>
-          <Text style={styles.emptyTitle}>Сравни цени</Text>
-          <Text style={styles.emptyHint}>Намери най-изгодната оферта{'\n'}в Billa, Lidl, Kaufland, Metro и Fantastico</Text>
-        </View>
-      )}
-
-      {!loading && results.length > 0 && (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id}
-          renderItem={renderProduct}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        {/* Recommendation card */}
+        <LinearGradient
+          colors={Gradients.accent}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.recoCard}
+        >
+          <SparkleIcon size={18} color="rgba(255,255,255,0.85)" />
+          <Text style={styles.recoTitle}>Съвет за деня</Text>
+          <Text style={styles.recoText}>
+            Сравни цените в 5 магазина преди да пазаруваш — спести до 30% от месечните разходи
+          </Text>
+          <TouchableOpacity style={styles.recoBtn} onPress={() => router.push('/(tabs)/search')}>
+            <Text style={styles.recoBtnText}>Сравни сега</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </ScrollView>
     </View>
   );
 }
 
+function QuickAction({
+  icon, label, onPress, c,
+}: { icon: React.ReactNode; label: string; onPress: () => void; c: AppColors }) {
+  return (
+    <TouchableOpacity
+      style={[styles2.quickAction, { backgroundColor: c.surface, shadowColor: c.shadow }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={[styles2.quickIconWrap, { backgroundColor: c.accentSoft }]}>{icon}</View>
+      <Text style={[styles2.quickLabel, { color: c.inkSoft }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+const styles2 = StyleSheet.create({
+  quickAction: {
+    flex: 1, borderRadius: 16, padding: 14, alignItems: 'center', gap: 8,
+    shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  },
+  quickIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  quickLabel: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+});
+
 function makeStyles(c: AppColors) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.canvas },
-    searchWrap: {
-      paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12,
-      backgroundColor: c.surface,
-      borderBottomWidth: 1, borderBottomColor: c.divider,
-      flexDirection: 'row', gap: 10, alignItems: 'center',
+    root: { flex: 1, backgroundColor: c.canvas },
+    scroll: { flex: 1 },
+    content: { paddingHorizontal: 20, gap: 16 },
+
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    greeting: { fontSize: 17, fontWeight: '800', color: c.ink },
+    subGreeting: { fontSize: 12, color: c.inkSoft, marginTop: 1 },
+    bellBtn: {
+      width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
+      shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 1,
     },
-    searchBox: {
-      flex: 1, flexDirection: 'row', alignItems: 'center',
-      backgroundColor: c.canvas, borderRadius: 14,
-      paddingHorizontal: 12, paddingVertical: 10, gap: 8,
+    bellDot: {
+      position: 'absolute', top: 9, right: 9,
+      width: 8, height: 8, borderRadius: 4,
+      backgroundColor: c.accent, borderWidth: 1.5, borderColor: c.surface,
     },
-    searchIcon: { fontSize: 15 },
-    input: { flex: 1, fontSize: 15, color: c.ink, fontWeight: '500' },
-    clearBtn: { fontSize: 13, color: c.inkFaint, paddingHorizontal: 4 },
-    searchBtn: {
-      backgroundColor: c.accent, borderRadius: 14,
-      paddingHorizontal: 16, paddingVertical: 12,
+
+    budgetCard: {
+      borderRadius: 22, padding: 18,
+      shadowColor: c.shadow, shadowOpacity: 0.07, shadowRadius: 16,
+      shadowOffset: { width: 0, height: 4 }, elevation: 3,
     },
-    searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 60 },
-    loadingText: { marginTop: 12, color: c.inkSoft, fontSize: 14 },
-    emptyEmoji: { fontSize: 44, marginBottom: 12 },
-    emptyTitle: { fontSize: 18, fontWeight: '700', color: c.ink, marginBottom: 6 },
-    emptyHint: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 20 },
-    list: { padding: 14, paddingBottom: 24, gap: 10 },
-    card: {
-      backgroundColor: c.surface, borderRadius: 18, padding: 16,
+    budgetRow: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+    budgetInfo: { flex: 1 },
+    budgetListName: { fontSize: 10, fontWeight: '600', color: c.inkFaint, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
+    budgetAmount: { fontSize: 34, fontWeight: '800', color: c.ink, letterSpacing: -1 },
+    budgetBgn: { fontSize: 14, color: c.inkSoft, marginTop: 1, marginBottom: 8 },
+    remainingBadge: { alignSelf: 'flex-start', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+    remainingText: { fontSize: 12, fontWeight: '700' },
+    createListHint: { fontSize: 13, color: c.accent, fontWeight: '700', marginTop: 4 },
+
+    actionsRow: { flexDirection: 'row', gap: 10 },
+
+    listCard: {
+      borderRadius: 18, padding: 16,
       shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 }, elevation: 2,
+      shadowOffset: { width: 0, height: 3 }, elevation: 2,
     },
-    cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 10 },
-    cardTitles: { flex: 1 },
-    productName: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
-    brand: { fontSize: 12, color: c.inkFaint, marginTop: 2 },
-    cheapestPill: { backgroundColor: c.accentSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-    cheapestPrice: { fontSize: 14, fontWeight: '800', color: c.accent },
-    cheapestRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 },
-    storeDot: { width: 8, height: 8, borderRadius: 4 },
-    cheapestLabel: { fontSize: 12, color: c.inkSoft },
-    cheapestStoreName: { fontSize: 12, fontWeight: '700', color: c.ink },
-    priceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    priceChip: {
-      backgroundColor: c.surfaceAlt, borderRadius: 10,
-      paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center',
-      minWidth: 60, flexDirection: 'row', gap: 4,
+    listCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    listCardTitle: { fontSize: 14, fontWeight: '700', color: c.ink },
+    listCardChip: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
+    listCardChipText: { fontSize: 11, fontWeight: '700' },
+    listItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
+    listItemDot: { width: 8, height: 8, borderRadius: 4 },
+    listItemName: { flex: 1, fontSize: 14 },
+    listItemPrice: { fontSize: 13, fontWeight: '700' },
+    listCardFooter: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+      gap: 4, marginTop: 8, paddingTop: 8, borderTopWidth: 1,
     },
-    priceChipBest: { backgroundColor: c.accentSoft },
-    priceChipStore: { fontSize: 10, color: c.inkSoft, fontWeight: '600' },
-    priceChipVal: { fontSize: 12, fontWeight: '700', color: c.ink },
-    promoMark: {
-      fontSize: 9, fontWeight: '800',
-      backgroundColor: c.accentSoft, paddingHorizontal: 3, borderRadius: 4,
-    },
+    listCardSeeAll: { fontSize: 12, fontWeight: '700' },
+
+    recoCard: { borderRadius: 22, padding: 20, gap: 8 },
+    recoTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    recoText: { fontSize: 13, color: 'rgba(255,255,255,0.88)', lineHeight: 19 },
+    recoBtn: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8, marginTop: 4 },
+    recoBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   });
 }
